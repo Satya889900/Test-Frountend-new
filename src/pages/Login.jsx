@@ -2,6 +2,8 @@ import { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const navigate = useNavigate();
@@ -10,10 +12,7 @@ function Login() {
     e.preventDefault();
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/users/login",
-        form
-      );
+      const res = await axios.post(`${API_URL}/api/users/login`, form);
 
       // save token
       localStorage.setItem("token", res.data.token);
@@ -69,4 +68,4 @@ function Login() {
   );
 }
 
-export default 
+export default Login;
