@@ -12,11 +12,11 @@ jobs:
     steps:
       # 1. Checkout
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.7
 
       # 2. Setup Node
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.0.2
         with:
           node-version: 20
 
