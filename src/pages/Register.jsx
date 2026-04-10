@@ -247,10 +247,7 @@ export default function Register() {
             </div>
 
             {/* Social Buttons */}
-            <div style={{ display: "flex", gap: 10, marginBottom: "1.4rem" }}>
-              <SocialBtn icon="G" label="Google" />
-              <SocialBtn icon="⌥" label="GitHub" />
-            </div>
+         
 
             {/* Divider */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: "1.4rem" }}>

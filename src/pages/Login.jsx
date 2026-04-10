@@ -337,18 +337,7 @@ export default function Login() {
               </p>
             </div>
 
-            {/* social */}
-            <div style={{ display: "flex", gap: 10, marginBottom: "1.4rem", animation: "fadeSlide 0.45s ease both 0.15s" }}>
-              <SocialBtn icon="G" label="Google" />
-              <SocialBtn icon="⌥" label="GitHub" />
-            </div>
-
-            {/* divider */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: "1.4rem", animation: "fadeSlide 0.45s ease both 0.18s" }}>
-              <div style={{ flex: 1, height: "1px", background: "linear-gradient(to right, transparent, #ede9fe)" }} />
-              <span style={{ fontSize: 11, color: "#c4bce0", fontWeight: 600, letterSpacing: "0.08em" }}>OR CONTINUE WITH EMAIL</span>
-              <div style={{ flex: 1, height: "1px", background: "linear-gradient(to left, transparent, #ede9fe)" }} />
-            </div>
+           
 
             {/* form */}
             <form onSubmit={handleLogin} noValidate>
@@ -390,10 +379,7 @@ export default function Login() {
 
               {/* password */}
               <div style={{ marginBottom: "0.6rem", animation: "fadeSlide 0.45s ease both 0.25s" }}>
-                <label style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, alignItems: "center" }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#6d5fa0", letterSpacing: "0.05em", textTransform: "uppercase" }}>Password</span>
-                  <Link to="/forgot" style={{ fontSize: 12, color: "#7c3aed", textDecoration: "none", fontWeight: 600 }}>Forgot?</Link>
-                </label>
+               
                 <div style={{
                   display: "flex", alignItems: "center",
                   background: pass.focused ? "#f5f3ff" : "#faf9ff",
