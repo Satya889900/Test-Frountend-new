@@ -10,31 +10,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install Node
-        uses: actions/setup-node@v3
+      # 2. Setup Node
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      # 3. Install deps
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
+      # 4. Build
       - name: Build project
         run: npm run build
 
-      - name: Deploy to EC2
-        uses: appleboy/scp-action@v0.1.3
+      # 5. Copy dist to EC2
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: 13.63.160.91
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "dist/*"
-          target: "/home/ubuntu/dist"
+          target: "/home/ubuntu/"
 
-      - name: Move files on EC2
-        uses: appleboy/ssh-action@v0.1.10
+      # 6. Deploy on server
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: 13.63.160.91
           username: ubuntu
@@ -42,4 +48,6 @@ jobs:
           script: |
             sudo rm -rf /var/www/html/*
             sudo cp -r /home/ubuntu/dist/* /var/www/html/
+            sudo chown -R www-data:www-data /var/www/html
+            sudo chmod -R 755 /var/www/html
             sudo systemctl restart nginx
