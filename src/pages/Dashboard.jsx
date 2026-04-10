@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Layout from "../components/Layout";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -16,9 +17,60 @@ function Dashboard() {
     setTimeout(() => setLoading(false), 600);
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
+  const documentTypes = [
+    { name: "Resume/CV", icon: "📄", color: "#7c3aed", description: "Professional resume templates" },
+    { name: "Business Letter", icon: "📧", color: "#db2777", description: "Formal business correspondence" },
+    { name: "Invoice", icon: "💰", color: "#22c55e", description: "Professional invoice templates" },
+    { name: "Contract", icon: "📋", color: "#eab308", description: "Legal contract templates" },
+    { name: "Presentation", icon: "📊", color: "#3b82f6", description: "Slide presentation templates" },
+    { name: "Report", icon: "📈", color: "#f59e0b", description: "Business report templates" },
+    { name: "Newsletter", icon: "📰", color: "#ef4444", description: "Email newsletter templates" },
+    { name: "Brochure", icon: "📑", color: "#8b5cf6", description: "Marketing brochure templates" },
+    { name: "Certificate", icon: "🏆", color: "#06b6d4", description: "Award certificate templates" },
+    { name: "Agenda", icon: "📅", color: "#84cc16", description: "Meeting agenda templates" },
+    { name: "Memo", icon: "📝", color: "#f97316", description: "Internal memo templates" },
+    { name: "Proposal", icon: "💼", color: "#6366f1", description: "Business proposal templates" },
+    { name: "Flyer", icon: "🎯", color: "#ec4899", description: "Promotional flyer templates" },
+    { name: "Card", icon: "💳", color: "#14b8a6", description: "Greeting/business card templates" },
+    { name: "Form", icon: "📋", color: "#a855f7", description: "Custom form templates" },
+    { name: "Calendar", icon: "📆", color: "#f59e0b", description: "Calendar templates" },
+    { name: "Planner", icon: "📓", color: "#10b981", description: "Personal planner templates" },
+    { name: "Budget", icon: "💵", color: "#059669", description: "Budget planning templates" },
+    { name: "Schedule", icon: "⏰", color: "#dc2626", description: "Schedule templates" },
+    { name: "Checklist", icon: "✅", color: "#7c2d12", description: "Task checklist templates" },
+    { name: "Worksheet", icon: "📊", color: "#1e40af", description: "Educational worksheet templates" },
+    { name: "Chart", icon: "📈", color: "#7c3aed", description: "Data visualization templates" },
+  ];
+
+  const handleDocumentSelect = (docType) => {
+    // Navigate to the appropriate page based on document type
+    const routeMap = {
+      "Resume/CV": "/resume-builder",
+      "Business Letter": "/letter-builder",
+      "Invoice": "/invoice-builder",
+      "Contract": "/contract-builder",
+      "Presentation": "/presentation-builder",
+      "Report": "/report-builder",
+      "Newsletter": "/newsletter-builder",
+      "Brochure": "/brochure-builder",
+      "Certificate": "/certificate-builder",
+      "Agenda": "/agenda-builder",
+      "Memo": "/memo-builder",
+      "Proposal": "/proposal-builder",
+      "Flyer": "/flyer-builder",
+      "Card": "/card-builder",
+      "Form": "/form-builder",
+      "Calendar": "/calendar-builder",
+      "Planner": "/planner-builder",
+      "Budget": "/budget-builder",
+      "Schedule": "/schedule-builder",
+      "Checklist": "/checklist-builder",
+      "Worksheet": "/worksheet-builder",
+      "Chart": "/chart-builder",
+    };
+
+    const route = routeMap[docType.name] || "/document-builder";
+    navigate(route);
   };
 
   if (loading) {
@@ -30,23 +82,25 @@ function Dashboard() {
   }
 
   return (
-    <>
+    <Layout userName={user.name} showLogout={true}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-        
+
         * { font-family: 'Plus Jakarta Sans', sans-serif; }
-        
+
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
         @keyframes glow { 0%, 100% { box-shadow: 0 0 20px rgba(139,92,246,0.3); } 50% { box-shadow: 0 0 40px rgba(139,92,246,0.6); } }
 
-        .stat-card {
+        .doc-card {
           transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+          cursor: pointer;
         }
-        .stat-card:hover {
-          transform: scale(1.04) translateY(-10px);
+        .doc-card:hover {
+          transform: scale(1.05) translateY(-8px);
+          box-shadow: 0 20px 40px rgba(139,92,246,0.2);
         }
-        
+
         .glass {
           background: rgba(255, 255, 255, 0.75);
           backdrop-filter: blur(20px);
@@ -54,210 +108,141 @@ function Dashboard() {
         }
       `}</style>
 
+      {/* Welcome Banner */}
       <div style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #f8f4ff 0%, #f0e6ff 50%, #faf9ff 100%)",
+        background: "linear-gradient(90deg, #6d28d9, #c026d3)",
+        borderRadius: "28px",
+        padding: "32px 40px",
+        color: "white",
+        marginBottom: "32px",
         position: "relative",
         overflow: "hidden",
-        padding: "24px",
       }}>
-        {/* Animated Background Elements */}
-        <div style={{ position: "absolute", top: "10%", left: "15%", width: "420px", height: "420px", background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 65%)", borderRadius: "50%", animation: "float 18s ease-in-out infinite" }} />
-        <div style={{ position: "absolute", bottom: "15%", right: "18%", width: "520px", height: "520px", background: "radial-gradient(circle, rgba(236,72,153,0.10) 0%, transparent 70%)", borderRadius: "50%", animation: "float 22s ease-in-out infinite 4s" }} />
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <h2 style={{ fontSize: "32px", fontWeight: 700, marginBottom: "8px" }}>
+            Welcome to Document Builder, {user.name}! ✨
+          </h2>
+          <p style={{ fontSize: "17px", opacity: 0.9, maxWidth: "600px" }}>
+            Choose from our collection of professional templates to create stunning documents in minutes.
+          </p>
+        </div>
+        <div style={{ position: "absolute", right: "30px", bottom: "-20px", fontSize: "120px", opacity: "0.15" }}>📄</div>
+      </div>
 
-        {/* Navbar */}
-        <nav style={{
-          background: "rgba(255,255,255,0.92)",
-          backdropFilter: "blur(20px)",
-          borderRadius: "22px",
-          padding: "16px 28px",
-          marginBottom: "32px",
-          boxShadow: "0 8px 32px rgba(139,92,246,0.12)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          position: "sticky",
-          top: "16px",
-          zIndex: 100,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+      {/* Document Types Grid */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        gap: "24px",
+        marginBottom: "40px",
+      }}>
+        {documentTypes.map((doc, i) => (
+          <div
+            key={i}
+            className="doc-card glass"
+            onClick={() => handleDocumentSelect(doc)}
+            style={{
+              borderRadius: "24px",
+              padding: "28px",
+              boxShadow: "0 15px 35px rgba(139,92,246,0.12)",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+              <div>
+                <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#1a0f3c", margin: "0 0 8px 0" }}>
+                  {doc.name}
+                </h3>
+                <p style={{ color: "#6b21a8", fontSize: "14px", margin: 0 }}>
+                  {doc.description}
+                </p>
+              </div>
+              <div style={{
+                width: 60, height: 60,
+                background: `linear-gradient(135deg, ${doc.color}20, ${doc.color}10)`,
+                borderRadius: "16px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "28px"
+              }}>
+                {doc.icon}
+              </div>
+            </div>
+
+            {/* Hover indicator */}
             <div style={{
-              width: 48, height: 48, borderRadius: "16px",
-              background: "linear-gradient(135deg, #6d28d9, #c026d3)",
+              position: "absolute",
+              bottom: "16px",
+              right: "16px",
+              background: doc.color,
+              color: "white",
+              padding: "6px 12px",
+              borderRadius: "12px",
+              fontSize: "12px",
+              fontWeight: 600,
+              opacity: 0,
+              transition: "opacity 0.3s ease",
+            }}
+              className="hover-indicator"
+            >
+              Create →
+            </div>
+
+            <style>{`
+              .doc-card:hover .hover-indicator {
+                opacity: 1;
+              }
+            `}</style>
+          </div>
+        ))}
+      </div>
+
+      {/* Quick Stats */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+        gap: "20px",
+      }}>
+        {[
+          { label: "Templates Created", value: "1,284", icon: "📄", color: "#7c3aed" },
+          { label: "Documents Downloaded", value: "892", icon: "⬇️", color: "#22c55e" },
+          { label: "Time Saved", value: "156h", icon: "⏰", color: "#eab308" },
+          { label: "Happy Users", value: "2,450", icon: "😊", color: "#db2777" },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            style={{
+              background: "white",
+              borderRadius: "20px",
+              padding: "24px",
+              boxShadow: "0 10px 30px rgba(139,92,246,0.08)",
+              display: "flex",
+              alignItems: "center",
+              gap: "16px",
+            }}
+          >
+            <div style={{
+              width: 50, height: 50,
+              background: `linear-gradient(135deg, ${stat.color}, ${stat.color}80)`,
+              borderRadius: "12px",
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: "26px", fontWeight: 700,
-              boxShadow: "0 0 25px rgba(192,38,211,0.4)",
-              animation: "glow 3s ease-in-out infinite",
+              fontSize: "22px", color: "white"
             }}>
-              ✦
+              {stat.icon}
             </div>
             <div>
-              <h1 style={{ fontSize: "26px", fontWeight: 700, color: "#1a0f3c", margin: 0 }}>
-                Dashboard
-              </h1>
-              <p style={{ color: "#8b5cf6", fontSize: "14px", margin: 0 }}>Good evening, {user.name} 👋</p>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{
-              padding: "8px 18px", background: "#f3e8ff", borderRadius: "9999px",
-              fontSize: "14px", fontWeight: 600, color: "#6b21a8"
-            }}>
-              Pro Plan
-            </div>
-            <button
-              onClick={handleLogout}
-              style={{
-                padding: "10px 26px",
-                background: "linear-gradient(90deg, #ef4444, #f87171)",
-                color: "white",
-                border: "none",
-                borderRadius: "14px",
-                fontWeight: 600,
-                cursor: "pointer",
-                boxShadow: "0 4px 15px rgba(239,68,68,0.3)",
-              }}
-            >
-              Logout
-            </button>
-          </div>
-        </nav>
-
-        {/* Welcome Banner */}
-        <div style={{
-          background: "linear-gradient(90deg, #6d28d9, #c026d3)",
-          borderRadius: "28px",
-          padding: "32px 40px",
-          color: "white",
-          marginBottom: "32px",
-          position: "relative",
-          overflow: "hidden",
-        }}>
-          <div style={{ position: "relative", zIndex: 2 }}>
-            <h2 style={{ fontSize: "32px", fontWeight: 700, marginBottom: "8px" }}>
-              Welcome back, {user.name}! ✨
-            </h2>
-            <p style={{ fontSize: "17px", opacity: 0.9, maxWidth: "460px" }}>
-              Everything is looking great today. Here's a quick overview of your workspace.
-            </p>
-          </div>
-          <div style={{ position: "absolute", right: "30px", bottom: "-20px", fontSize: "120px", opacity: 0.15 }}>✦</div>
-        </div>
-
-        {/* Stats Grid */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: "24px",
-          marginBottom: "40px",
-        }}>
-          {[
-            { label: "Total Users", value: "1,284", icon: "👥", color: "#7c3aed", change: "+18%" },
-            { label: "Active Projects", value: "63", icon: "🚀", color: "#db2777", change: "+7%" },
-            { label: "Revenue", value: "$12,459", icon: "💎", color: "#22c55e", change: "+24%" },
-            { label: "Tasks Done", value: "392", icon: "✅", color: "#eab308", change: "+11%" },
-          ].map((item, i) => (
-            <div
-              key={i}
-              className="stat-card glass"
-              style={{
-                borderRadius: "24px",
-                padding: "28px 32px",
-                boxShadow: "0 15px 35px rgba(139,92,246,0.12)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <p style={{ color: "#6b21a8", fontSize: "13px", fontWeight: 600, letterSpacing: "1px" }}>{item.label}</p>
-                  <p style={{ fontSize: "48px", fontWeight: 700, color: "#1a0f3c", margin: "12px 0 4px" }}>{item.value}</p>
-                  <p style={{ color: "#22c55e", fontWeight: 600 }}>{item.change} this month</p>
-                </div>
-                <div style={{
-                  width: 68, height: 68, background: `linear-gradient(135deg, ${item.color}15, transparent)`,
-                  borderRadius: "18px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "32px"
-                }}>
-                  {item.icon}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Main Content Area */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "2fr 1fr",
-          gap: "24px",
-        }}>
-          {/* Left - Main Panel */}
-          <div style={{
-            background: "white",
-            borderRadius: "28px",
-            padding: "32px",
-            boxShadow: "0 20px 60px rgba(139,92,246,0.1)",
-          }}>
-            <h3 style={{ fontSize: "22px", fontWeight: 700, color: "#1a0f3c", marginBottom: "24px" }}>
-              Recent Activity
-            </h3>
-            <div style={{ textAlign: "center", padding: "80px 20px", color: "#9f8ac4" }}>
-              <div style={{ fontSize: "70px", marginBottom: "16px" }}>🌟</div>
-              <p style={{ fontSize: "18px", fontWeight: 600 }}>Your workspace is thriving</p>
-              <p style={{ maxWidth: "340px", margin: "12px auto 0" }}>
-                Beautiful analytics and activity will appear here once you start using the platform.
+              <p style={{ color: "#6b21a8", fontSize: "12px", fontWeight: 600, margin: 0 }}>
+                {stat.label}
+              </p>
+              <p style={{ fontSize: "24px", fontWeight: 700, color: "#1a0f3c", margin: "4px 0 0 0" }}>
+                {stat.value}
               </p>
             </div>
           </div>
-
-          {/* Right Sidebar */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <div style={{
-              background: "white",
-              borderRadius: "24px",
-              padding: "28px",
-              boxShadow: "0 15px 40px rgba(139,92,246,0.08)",
-              flex: 1,
-            }}>
-              <h4 style={{ fontWeight: 700, color: "#1a0f3c", marginBottom: "20px" }}>Quick Actions</h4>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                {["New Project", "Invite Team", "View Reports", "Upgrade Plan"].map((text, i) => (
-                  <button
-                    key={i}
-                    style={{
-                      padding: "16px 12px",
-                      background: i === 0 ? "linear-gradient(90deg, #7c3aed, #c026d3)" : "#f8f4ff",
-                      color: i === 0 ? "white" : "#6b21a8",
-                      border: "none",
-                      borderRadius: "16px",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    {text}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{
-              background: "white",
-              borderRadius: "24px",
-              padding: "28px",
-              boxShadow: "0 15px 40px rgba(139,92,246,0.08)",
-              flex: 1,
-            }}>
-              <h4 style={{ fontWeight: 700, color: "#1a0f3c", marginBottom: "16px" }}>Productivity Tip</h4>
-              <p style={{ lineHeight: 1.6, color: "#6b21a8" }}>
-                "Consistency beats intensity. Small daily improvements lead to massive results over time."
-              </p>
-              <div style={{ marginTop: "20px", fontSize: "13px", color: "#a78bfa" }}>— Your AI Assistant</div>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
-    </>
+    </Layout>
   );
 }
-    
+
 export default Dashboard;
