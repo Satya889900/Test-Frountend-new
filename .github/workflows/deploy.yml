@@ -10,16 +10,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
       - name: Deploy to EC2
+        uses: appleboy/scp-action@v0.1.3
+        with:
+          host: 13.63.160.91
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "dist/*"
+          target: "/home/ubuntu/dist"
+
+      - name: Move files on EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: 13.63.160.91
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /var/www/html/Test-Frontend-new
-            git pull origin main
-            npm install
-            npm run build
-            sudo cp -r dist/* /var/www/html/
+            sudo rm -rf /var/www/html/*
+            sudo cp -r /home/ubuntu/dist/* /var/www/html/
             sudo systemctl restart nginx
