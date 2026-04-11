@@ -3,6 +3,10 @@ import Login from "./pages/Login Page/Login";
 import Register from "./pages/Login Page/Register";
 import Dashboard from "./pages/Dashboard";
 import DocumentBuilder from "./pages/DocumentBuilder";
+import ResumePage from "./pages/Resume/ResumePage";
+import ResumeEditor from "./pages/Resume/ResumeEditor";
+import BusinessLetterPage from "./pages/BusinessLetterPage";
+import BusinessLetterEditor from "./pages/BusinessLetterEditor";
 
 // 🔐 Private Route
 function PrivateRoute({ children }) {
@@ -32,7 +36,15 @@ function App() {
           path="/resume-builder"
           element={
             <PrivateRoute>
-              <DocumentBuilder />
+              <ResumePage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/editor/resume/:templateName"
+          element={
+            <PrivateRoute>
+              <ResumeEditor />
             </PrivateRoute>
           }
         />
@@ -40,7 +52,15 @@ function App() {
           path="/letter-builder"
           element={
             <PrivateRoute>
-              <DocumentBuilder />
+              <BusinessLetterPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/editor/letter/:templateName"
+          element={
+            <PrivateRoute>
+              <BusinessLetterEditor />
             </PrivateRoute>
           }
         />
