@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { loginUser } from "../../services/api";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -71,6 +72,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 50);
@@ -81,15 +83,11 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/api/users/login`, {
-        email: email.value,
-        password: pass.value,
-      });
-      localStorage.setItem("token", res.data.token);
-      alert("Login Successful ✅");
+      const data = await loginUser({ email: email.value, password: pass.value });
+      login(data);
       navigate("/dashboard");
     } catch (err) {
-      alert(err.response?.data?.message || "Error");
+      alert(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }

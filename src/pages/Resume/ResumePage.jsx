@@ -1,356 +1,627 @@
-import { useEffect, useState } from "react";
+// ResumePage.jsx
+// Full 3-step resume builder:
+//   Step 1 → Gallery     (browse & pick template)
+//   Step 2 → Configure   (colour, photo, font, layout)
+//   Step 3 → Builder     (fill form, live preview, export)
+//
+// Drop this file (plus resumeData.js and ResumePreview.jsx) into your project.
+// Requires react-router-dom for useNavigate.
+
+import { useState, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import Layout from "../../components/Layout";
-// import { MagnifyingGlassIcon, ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import ResumePreview from "./Resumepreview";
+import {
+  TEMPLATES, CATEGORIES, FILTER_TYPES,
+  COLORS, FONT_OPTIONS, DEFAULT_FORM,
+} from "./Resumedata";
 
-function ResumePage() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState({ name: "Satya" });
-  const [loading, setLoading] = useState(true);
-  const [currentStep, setCurrentStep] = useState("selectType"); // "selectType" or "selectTemplate"
-  const [selectedType, setSelectedType] = useState(null);
+// ─── Tiny inline styles reused across steps ───────────────────────────────────
+const S = {
+  page:   { minHeight: "100vh", background: "#f0f4ff", display: "flex", flexDirection: "column", fontFamily: "'Segoe UI', system-ui, sans-serif" },
+  nav:    { background: "#fff", borderBottom: "1px solid #e5e7eb", padding: "12px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" },
+  logo:   { fontSize: 15, fontWeight: 700, color: "#4f46e5" },
+  hero:   { background: "linear-gradient(135deg,#312e81 0%,#4f46e5 55%,#7c3aed 100%)", padding: "36px 28px 28px", textAlign: "center", color: "#fff" },
+  pill:   { background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 100, padding: "5px 14px", fontSize: 11, fontWeight: 500 },
+  toolbar:{ background: "#fff", borderBottom: "1px solid #e5e7eb", padding: "12px 28px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" },
+  gallery:{ padding: "22px 28px" },
+  catLabel:{ fontSize: 11, fontWeight: 700, color: "#4f46e5", textTransform: "uppercase", letterSpacing: "0.07em", margin: "0 0 12px" },
+  grid:   { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(175px,1fr))", gap: 14, marginBottom: 32 },
+  card:   { background: "#fff", borderRadius: 12, border: "1.5px solid #e5e7eb", cursor: "pointer", overflow: "hidden", transition: "all 0.2s", position: "relative" },
+};
 
-  const resumeTemplates = [
-    { name: "Professional", icon: "💼", color: "#7c3aed", description: "Clean and professional design", category: "All" },
-    { name: "Modern", icon: "✨", color: "#db2777", description: "Contemporary and stylish", category: "All" },
-    { name: "Creative", icon: "🎨", color: "#22c55e", description: "Unique and eye-catching", category: "All" },
-    { name: "Minimal", icon: "⚪", color: "#eab308", description: "Simple and elegant", category: "All" },
-    { name: "Classic", icon: "📜", color: "#3b82f6", description: "Traditional and timeless", category: "All" },
-    { name: "Bold", icon: "🔥", color: "#ef4444", description: "Strong and impactful", category: "All" },
-    { name: "Word", icon: "📝", color: "#0ea5e9", description: "Download and edit in Word", category: "Download" },
-    { name: "Google Docs", icon: "🟦", color: "#2563eb", description: "Open in Google Docs instantly", category: "Download" },
-    { name: "ATS Friendly", icon: "⚙️", color: "#8b5cf6", description: "Optimized for recruiters and ATS", category: "Smart" },
-    { name: "Cover Letter", icon: "✉️", color: "#f97316", description: "Perfect companion for your resume", category: "Smart" },
-  ];
+// ─── Mini document preview (thumbnail in gallery) ─────────────────────────────
+function DocMini({ accent, layout }) {
+  const a = accent;
+  const line = (w, op = 0.35) => (
+    <div style={{ height: 2, background: `rgba(255,255,255,${op})`, borderRadius: 2, width: `${w}%`, marginBottom: 2 }} />
+  );
+  const grayLine = (w) => (
+    <div style={{ height: 2, background: "#f3f4f6", borderRadius: 2, width: `${w}%`, marginBottom: 2 }} />
+  );
+  const sectionLabel = (text) => (
+    <div style={{ fontSize: 6, color: a, fontWeight: 700, marginBottom: 2 }}>{text}</div>
+  );
 
-  const templateTypes = [
-    {
-      name: "Popular",
-      icon: "⭐",
-      color: "#7c3aed",
-      description: "Most used templates by professionals",
-      templates: ["Professional", "Modern", "Minimal", "Bold"]
-    },
-    {
-      name: "Download Ready",
-      icon: "⬇️",
-      color: "#22c55e",
-      description: "Templates optimized for download and sharing",
-      templates: ["Word", "Google Docs"]
-    },
-    {
-      name: "Smart Templates",
-      icon: "🤖",
-      color: "#8b5cf6",
-      description: "AI-optimized and ATS-friendly designs",
-      templates: ["ATS Friendly", "Cover Letter"]
-    },
-    {
-      name: "All Styles",
-      icon: "🎨",
-      color: "#db2777",
-      description: "Browse all available template styles",
-      templates: resumeTemplates.map(t => t.name)
-    }
-  ];
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    setTimeout(() => setLoading(false), 600);
-  }, [navigate]);
-
-  const handleTypeSelect = (type) => {
-    setSelectedType(type);
-    setCurrentStep("selectTemplate");
-  };
-
-  const handleBackToTypes = () => {
-    setCurrentStep("selectType");
-    setSelectedType(null);
-  };
-
-  const filteredTemplates = selectedType
-    ? resumeTemplates.filter(template => selectedType.templates.includes(template.name))
-    : [];
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="w-14 h-14 border-4 border-primary-50/50 border-t-primary-500 rounded-full animate-spin" />
+  if (layout === "sidebar") return (
+    <div style={{ display: "flex", height: "100%" }}>
+      <div style={{ width: "36%", background: a, padding: "7px 5px" }}>
+        <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.3)", margin: "0 auto 5px" }} />
+        {line(80, 0.7)}{line(60, 0.4)}
+        <div style={{ marginTop: 6 }} />
+        {[70, 85, 55, 65].map((w, i) => line(w, 0.35 + i * 0.05))}
       </div>
+      <div style={{ flex: 1, padding: "7px 5px" }}>
+        <div style={{ height: 3, background: a, borderRadius: 2, width: "50%", marginBottom: 3 }} />
+        {[90, 75, 65, 80, 55, 70].map((w, i) => grayLine(w))}
+      </div>
+    </div>
+  );
+
+  if (layout === "top") return (
+    <div>
+      <div style={{ background: a, padding: "8px 6px" }}>
+        <div style={{ height: 5, background: "rgba(255,255,255,0.9)", borderRadius: 2, width: "50%", marginBottom: 3 }} />
+        <div style={{ height: 3, background: "rgba(255,255,255,0.5)", borderRadius: 2, width: "35%" }} />
+      </div>
+      <div style={{ padding: "6px 6px" }}>
+        {["Exp", "Edu", "Skills"].map((s) => (
+          <div key={s}>
+            {sectionLabel(s)}
+            {[90, 70, 80].map((w, i) => grayLine(w))}
+            <div style={{ marginBottom: 4 }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (layout === "corporate") return (
+    <div>
+      <div style={{ background: a, padding: "8px 6px", display: "flex", alignItems: "center", gap: 4 }}>
+        <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(255,255,255,0.2)", flexShrink: 0 }} />
+        <div>
+          <div style={{ height: 4, background: "rgba(255,255,255,0.9)", borderRadius: 2, width: 55, marginBottom: 2 }} />
+          <div style={{ height: 2, background: "rgba(255,255,255,0.5)", borderRadius: 2, width: 35 }} />
+        </div>
+      </div>
+      <div style={{ padding: "6px 6px" }}>
+        {["Exp", "Edu", "Skills"].map((s) => (
+          <div key={s}>
+            <div style={{ fontSize: 6, color: a, fontWeight: 700, borderLeft: `2px solid ${a}`, paddingLeft: 3, marginBottom: 2 }}>{s}</div>
+            {[88, 70, 80].map((w) => grayLine(w))}
+            <div style={{ marginBottom: 4 }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // minimal
+  return (
+    <div style={{ padding: "8px 7px" }}>
+      <div style={{ height: 5, background: "#111", borderRadius: 2, width: "50%", marginBottom: 2 }} />
+      <div style={{ height: 2, background: "#9ca3af", borderRadius: 2, width: "35%", marginBottom: 6 }} />
+      <div style={{ height: 1, background: "#e5e7eb", marginBottom: 5 }} />
+      {["Exp", "Edu", "Skills"].map((s) => (
+        <div key={s}>
+          <div style={{ fontSize: 6, color: a, fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>{s}</div>
+          {[90, 75, 65].map((w) => grayLine(w))}
+          <div style={{ marginBottom: 4 }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Reusable Btn ─────────────────────────────────────────────────────────────
+function Btn({ onClick, children, variant = "primary", style = {} }) {
+  const base = { padding: "8px 18px", borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "none", transition: "background 0.15s" };
+  const variants = {
+    primary: { background: "#4f46e5", color: "#fff" },
+    ghost:   { background: "#f3f4f6", color: "#1f2937" },
+    white:   { background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)" },
+  };
+  return <button onClick={onClick} style={{ ...base, ...variants[variant], ...style }}>{children}</button>;
+}
+
+// ─── Form field helpers ───────────────────────────────────────────────────────
+function FGroup({ label, children }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const inputStyle = { padding: "7px 9px", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 11, outline: "none", fontFamily: "inherit", color: "#111827", background: "#fff", width: "100%" };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 1 — GALLERY
+// ─────────────────────────────────────────────────────────────────────────────
+function GalleryStep({ onSelect }) {
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    return TEMPLATES.filter((t) => {
+      const matchType = filter === "All" || t.type === filter;
+      const matchSearch = !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.type.toLowerCase().includes(search.toLowerCase());
+      return matchType && matchSearch;
+    });
+  }, [filter, search]);
+
+  const isSearching = search || filter !== "All";
+
+  return (
+    <div style={S.page}>
+      {/* Nav */}
+      <div style={S.nav}>
+        <div style={S.logo}>ResumeStudio</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Btn variant="ghost" onClick={() => navigate("/dashboard")}>Dashboard</Btn>
+          <Btn variant="primary">My Resumes</Btn>
+        </div>
+      </div>
+
+      {/* Hero */}
+      <div style={S.hero}>
+        <h1 style={{ fontSize: 30, fontWeight: 700, marginBottom: 8 }}>Choose your resume template</h1>
+        <p style={{ fontSize: 14, opacity: 0.8, marginBottom: 18 }}>Pick a template, choose your colour, add your photo — build in minutes.</p>
+        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+          {["105+ Templates", "Custom Colours", "Photo Upload", "ATS Optimized", "PDF Export"].map((t) => (
+            <div key={t} style={S.pill}>{t}</div>
+          ))}
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div style={S.toolbar}>
+        <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
+          <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 14, opacity: 0.4 }}>🔍</span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search templates..."
+            style={{ ...inputStyle, paddingLeft: 34, borderRadius: 10 }}
+          />
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {FILTER_TYPES.map((t) => (
+            <button
+              key={t}
+              onClick={() => setFilter(t)}
+              style={{
+                padding: "6px 14px", borderRadius: 100, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                border: "1px solid",
+                borderColor: filter === t ? "#4f46e5" : "#e5e7eb",
+                background: filter === t ? "#4f46e5" : "#fff",
+                color: filter === t ? "#fff" : "#4b5563",
+                transition: "all 0.15s",
+              }}
+            >{t}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Gallery */}
+      <div style={S.gallery}>
+        {isSearching ? (
+          <>
+            <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 14 }}>{filtered.length} templates found</div>
+            <div style={S.grid}>
+              {filtered.map((t) => <TemplateCard key={t.id} template={t} onSelect={onSelect} />)}
+            </div>
+          </>
+        ) : (
+          Object.entries(CATEGORIES).map(([cat, ids]) => {
+            const ts = ids.map((id) => TEMPLATES.find((t) => t.id === id)).filter(Boolean);
+            return (
+              <div key={cat}>
+                <div style={S.catLabel}>{cat}</div>
+                <div style={S.grid}>
+                  {ts.map((t) => <TemplateCard key={t.id} template={t} onSelect={onSelect} />)}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TemplateCard({ template: t, onSelect }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      style={{
+        ...S.card,
+        borderColor: hovered ? "#4f46e5" : "#e5e7eb",
+        transform: hovered ? "translateY(-3px)" : "none",
+        boxShadow: hovered ? "0 8px 24px rgba(79,70,229,0.13)" : "none",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={() => onSelect(t)}
+    >
+      {/* Badge */}
+      {t.badge === "popular" && (
+        <div style={{ position: "absolute", top: 6, right: 6, background: "#fef3c7", color: "#92400e", fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 100 }}>Popular</div>
+      )}
+      {t.badge === "new" && (
+        <div style={{ position: "absolute", top: 6, right: 6, background: "#d1fae5", color: "#065f46", fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 100 }}>New</div>
+      )}
+
+      {/* Preview */}
+      <div style={{ height: 200, overflow: "hidden", padding: 8, background: "#f9fafb" }}>
+        <div style={{ width: "100%", height: "100%", background: "#fff", borderRadius: 5, border: "1px solid #e5e7eb", overflow: "hidden" }}>
+          <DocMini accent={t.accent} layout={t.layout} />
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{ padding: "9px 10px 10px" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", marginBottom: 1 }}>{t.name}</div>
+        <div style={{ fontSize: 10, color: "#9ca3af", marginBottom: 7 }}>{t.type}</div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onSelect(t); }}
+          style={{ width: "100%", padding: "6px", borderRadius: 7, background: "#4f46e5", color: "#fff", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer" }}
+        >Customise &amp; Use</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 2 — CONFIGURE
+// ─────────────────────────────────────────────────────────────────────────────
+function ConfigureStep({ template, config, setConfig, onBack, onNext }) {
+  const photoInputRef = useRef(null);
+
+  const update = useCallback((key, val) => setConfig((c) => ({ ...c, [key]: val })), [setConfig]);
+
+  const handlePhoto = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => update("photo", ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const removePhoto = () => update("photo", null);
+
+  return (
+    <div style={S.page}>
+      {/* Header */}
+      <div style={{ background: "linear-gradient(135deg,#312e81,#4f46e5)", padding: "14px 28px", display: "flex", alignItems: "center", gap: 14 }}>
+        <Btn variant="white" onClick={onBack}>← Templates</Btn>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>{template.name}</div>
+        <div style={{ marginLeft: "auto", background: "rgba(255,255,255,0.2)", color: "#fff", fontSize: 11, padding: "3px 12px", borderRadius: 100 }}>{template.type}</div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", flex: 1, minHeight: 600 }}>
+        {/* Left — options */}
+        <div style={{ background: "#e8ecf5", padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
+
+          {/* Colour */}
+          <ConfigCard title="🎨 Choose accent colour">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+              {COLORS.map((c) => (
+                <div
+                  key={c}
+                  onClick={() => update("accent", c)}
+                  style={{
+                    width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer",
+                    border: `2.5px solid ${config.accent === c ? "#fff" : "transparent"}`,
+                    boxShadow: config.accent === c ? `0 0 0 2.5px #4f46e5` : "none",
+                    transition: "all 0.15s",
+                  }}
+                />
+              ))}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <label style={{ fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Custom:</label>
+              <input type="color" value={config.accent} onChange={(e) => update("accent", e.target.value)}
+                style={{ width: 36, height: 28, border: "1px solid #e5e7eb", borderRadius: 6, cursor: "pointer", padding: 2 }} />
+              <span style={{ fontSize: 11, color: "#6b7280" }}>{config.accent}</span>
+            </div>
+          </ConfigCard>
+
+          {/* Photo */}
+          <ConfigCard title="📷 Profile photo (optional)">
+            <input type="file" accept="image/*" ref={photoInputRef} onChange={handlePhoto} style={{ display: "none" }} />
+            {config.photo ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <img src={config.photo} alt="profile"
+                  style={{ width: 60, height: 60, borderRadius: config.circlePhoto ? "50%" : 8, objectFit: "cover", border: "2px solid #4f46e5" }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <Btn variant="ghost" style={{ fontSize: 11 }} onClick={() => photoInputRef.current.click()}>Change photo</Btn>
+                  <Btn variant="ghost" style={{ fontSize: 11, color: "#dc2626" }} onClick={removePhoto}>Remove</Btn>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => photoInputRef.current.click()}
+                style={{ border: "2px dashed #d1d5db", borderRadius: 10, padding: 16, textAlign: "center", cursor: "pointer" }}
+              >
+                <div style={{ fontSize: 28, marginBottom: 6 }}>📷</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#4b5563" }}>Click to upload photo</div>
+                <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>JPG, PNG — appears on your resume</div>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#4b5563", cursor: "pointer" }}>
+                <input type="checkbox" checked={config.circlePhoto} onChange={(e) => update("circlePhoto", e.target.checked)} /> Circular crop
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#4b5563", cursor: "pointer" }}>
+                <input type="checkbox" checked={config.showPhoto} onChange={(e) => update("showPhoto", e.target.checked)} /> Show on resume
+              </label>
+            </div>
+          </ConfigCard>
+
+          {/* Font */}
+          <ConfigCard title="✏️ Font style">
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {FONT_OPTIONS.map((fo) => (
+                <button key={fo.value} onClick={() => update("font", fo.value)}
+                  style={{
+                    padding: "6px 12px", borderRadius: 8, border: "1px solid", cursor: "pointer", fontSize: 11,
+                    fontFamily: fo.value,
+                    borderColor: config.font === fo.value ? "#4f46e5" : "#e5e7eb",
+                    background: config.font === fo.value ? "#4f46e5" : "#fff",
+                    color: config.font === fo.value ? "#fff" : "#374151",
+                  }}>{fo.label}</button>
+              ))}
+            </div>
+          </ConfigCard>
+
+          {/* Layout */}
+          <ConfigCard title="📐 Layout variant">
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {["sidebar", "top", "minimal", "corporate"].map((l) => (
+                <button key={l} onClick={() => update("layout", l)}
+                  style={{
+                    padding: "6px 14px", borderRadius: 8, border: "1px solid", cursor: "pointer", fontSize: 11, fontWeight: 500,
+                    borderColor: config.layout === l ? "#4f46e5" : "#e5e7eb",
+                    background: config.layout === l ? "#4f46e5" : "#fff",
+                    color: config.layout === l ? "#fff" : "#374151",
+                    textTransform: "capitalize",
+                  }}>{l === "top" ? "Top header" : l.charAt(0).toUpperCase() + l.slice(1)}</button>
+              ))}
+            </div>
+          </ConfigCard>
+
+        </div>
+
+        {/* Right — preview */}
+        <div style={{ background: "#fff", borderLeft: "1px solid #e5e7eb", display: "flex", flexDirection: "column" }}>
+          <div style={{ flex: 1, background: "#dde3f0", padding: 16, overflowY: "auto", display: "flex", justifyContent: "center" }}>
+            <div style={{ background: "#fff", width: "100%", maxWidth: 400, minHeight: 560, borderRadius: 4, boxShadow: "0 4px 20px rgba(0,0,0,0.1)", overflow: "hidden" }}>
+              <ResumePreview config={config} form={DEFAULT_FORM} />
+            </div>
+          </div>
+          <div style={{ padding: "14px 16px", borderTop: "1px solid #e5e7eb", display: "flex", gap: 8 }}>
+            <Btn variant="ghost" onClick={onBack} style={{ flex: 1 }}>← Back</Btn>
+            <Btn variant="primary" onClick={onNext} style={{ flex: 1 }}>Use this design →</Btn>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfigCard({ title, children }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #e5e7eb" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#1f2937", marginBottom: 12 }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 3 — BUILDER
+// ─────────────────────────────────────────────────────────────────────────────
+function BuilderStep({ template, config, onBack, onChangeTemplate }) {
+  const [form, setForm] = useState({ ...DEFAULT_FORM });
+  const update = (key, val) => setForm((f) => ({ ...f, [key]: val }));
+
+  const Field = ({ label, field, placeholder, type = "text" }) => (
+    <FGroup label={label}>
+      <input
+        type={type}
+        value={form[field] || ""}
+        placeholder={placeholder}
+        onChange={(e) => update(field, e.target.value)}
+        style={inputStyle}
+      />
+    </FGroup>
+  );
+
+  const TextArea = ({ label, field, placeholder }) => (
+    <FGroup label={label}>
+      <textarea
+        value={form[field] || ""}
+        placeholder={placeholder}
+        onChange={(e) => update(field, e.target.value)}
+        style={{ ...inputStyle, minHeight: 64, resize: "vertical" }}
+      />
+    </FGroup>
+  );
+
+  const Row2 = ({ children }) => (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>{children}</div>
+  );
+
+  const SectionTitle = ({ icon, text }) => (
+    <div style={{ fontSize: 11, fontWeight: 700, color: "#1f2937", marginBottom: 10, paddingBottom: 6, borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ width: 20, height: 20, borderRadius: 5, background: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11 }}>{icon}</div>
+      {text}
+    </div>
+  );
+
+  const AddMore = ({ label }) => (
+    <button style={{ width: "100%", padding: "7px", borderRadius: 8, border: "1.5px dashed #e5e7eb", background: "#f9fafb", color: "#4f46e5", fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 4 }}>{label}</button>
+  );
+
+  return (
+    <div style={S.page}>
+      {/* Header */}
+      <div style={{ background: "linear-gradient(135deg,#312e81,#4f46e5)", padding: "14px 28px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <Btn variant="white" onClick={onBack}>← Reconfigure</Btn>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{template.name}</div>
+        <div style={{ background: "rgba(255,255,255,0.2)", color: "#fff", fontSize: 11, padding: "3px 12px", borderRadius: 100 }}>{template.type}</div>
+        <Btn variant="white" style={{ marginLeft: "auto", fontSize: 11 }} onClick={onChangeTemplate}>Change template</Btn>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", flex: 1, minHeight: 600 }}>
+        {/* Live preview */}
+        <div style={{ background: "#dde3f0", padding: 20, overflowY: "auto", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+          <div style={{ background: "#fff", width: "100%", maxWidth: 480, minHeight: 660, borderRadius: 4, boxShadow: "0 4px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}>
+            <ResumePreview config={config} form={form} />
+          </div>
+        </div>
+
+        {/* Form pane */}
+        <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+          <div style={{ flex: 1, background: "#fff", padding: 20, overflowY: "auto" }}>
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: "#111827", marginBottom: 2 }}>Fill your details</h2>
+            <p style={{ fontSize: 11, color: "#9ca3af", marginBottom: 18 }}>Preview updates as you type</p>
+
+            {/* Personal */}
+            <div style={{ marginBottom: 20 }}>
+              <SectionTitle icon="👤" text="Personal info" />
+              <Row2>
+                <Field label="First name"  field="fname"   placeholder="John" />
+                <Field label="Last name"   field="lname"   placeholder="Doe" />
+              </Row2>
+              <div style={{ marginBottom: 8 }}>
+                <Field label="Professional title" field="title" placeholder="e.g. Software Engineer" />
+              </div>
+              <Row2>
+                <Field label="Email"  field="email" placeholder="you@email.com" type="email" />
+                <Field label="Phone"  field="phone" placeholder="+1 234 567 890" />
+              </Row2>
+              <div style={{ marginBottom: 8 }}>
+                <Field label="LinkedIn / Website" field="linkedin" placeholder="linkedin.com/in/yourname" />
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div style={{ marginBottom: 20 }}>
+              <SectionTitle icon="📝" text="Professional summary" />
+              <TextArea label="Summary" field="summary" placeholder="Write 2-3 sentences about yourself..." />
+            </div>
+
+            {/* Experience */}
+            <div style={{ marginBottom: 20 }}>
+              <SectionTitle icon="💼" text="Work experience" />
+              <Row2>
+                <Field label="Job title" field="jobtitle" placeholder="Senior Developer" />
+                <Field label="Company"   field="company"  placeholder="Acme Corp" />
+              </Row2>
+              <Row2>
+                <Field label="Start date" field="jobstart" placeholder="2021" />
+                <Field label="End date"   field="jobend"   placeholder="Present" />
+              </Row2>
+              <div style={{ marginBottom: 4 }}>
+                <TextArea label="Description" field="jobdesc" placeholder="Describe your responsibilities..." />
+              </div>
+              <AddMore label="+ Add another position" />
+            </div>
+
+            {/* Education */}
+            <div style={{ marginBottom: 20 }}>
+              <SectionTitle icon="🎓" text="Education" />
+              <Row2>
+                <Field label="Degree" field="degree" placeholder="B.S. Computer Science" />
+                <Field label="School" field="school" placeholder="University name" />
+              </Row2>
+              <Row2>
+                <Field label="Graduation year" field="gradyear" placeholder="2020" />
+                <FGroup label="GPA (optional)"><input type="text" placeholder="3.8" style={inputStyle} /></FGroup>
+              </Row2>
+              <AddMore label="+ Add education" />
+            </div>
+
+            {/* Skills */}
+            <div style={{ marginBottom: 20 }}>
+              <SectionTitle icon="⚡" text="Skills" />
+              <Field label="Skills (comma separated)" field="skills" placeholder="JavaScript, React, Python..." />
+            </div>
+
+            {/* Languages */}
+            <div style={{ marginBottom: 20 }}>
+              <SectionTitle icon="🌐" text="Languages" />
+              <Row2>
+                <Field label="Language" field="language" placeholder="English" />
+                <FGroup label="Level">
+                  <select value={form.langLevel || "Native"} onChange={(e) => update("langLevel", e.target.value)} style={inputStyle}>
+                    {["Native", "Fluent", "Intermediate", "Basic"].map((l) => <option key={l}>{l}</option>)}
+                  </select>
+                </FGroup>
+              </Row2>
+              <AddMore label="+ Add language" />
+            </div>
+          </div>
+
+          {/* Export bar */}
+          <div style={{ padding: "14px 20px", borderTop: "1px solid #e5e7eb", display: "flex", gap: 8, background: "#fff" }}>
+            <Btn variant="ghost" onClick={onBack} style={{ flex: 1 }}>Edit design</Btn>
+            <Btn variant="primary" style={{ flex: 1 }} onClick={() => window.print()}>Download PDF ↗</Btn>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOT — ResumePage  (wires all 3 steps together)
+// ─────────────────────────────────────────────────────────────────────────────
+export default function ResumePage() {
+  const [step, setStep] = useState("gallery"); // "gallery" | "configure" | "builder"
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const user = { name: "Satya" };
+  const [config, setConfig] = useState({
+    accent: "#4f46e5",
+    font: "'Segoe UI', sans-serif",
+    layout: "sidebar",
+    photo: null,
+    circlePhoto: true,
+    showPhoto: true,
+  });
+
+  const handleSelectTemplate = (template) => {
+    setSelectedTemplate(template);
+    setConfig((c) => ({ ...c, accent: template.accent, layout: template.layout }));
+    setStep("configure");
+  };
+
+  if (step === "gallery") {
+    return <GalleryStep onSelect={handleSelectTemplate} />;
+  }
+
+  if (step === "configure") {
+    return (
+      <ConfigureStep
+        template={selectedTemplate}
+        config={config}
+        setConfig={setConfig}
+        onBack={() => setStep("gallery")}
+        onNext={() => setStep("builder")}
+      />
     );
   }
 
   return (
-    <Layout userName={user.name} showLogout={true} showSidebar={false}>
-
-
-
-      {/* Header */}
-      <div className="bg-gradient-to-r from-slate-50 via-primary-50 to-emerald-50/30 rounded-3xl p-8 lg:p-10 mb-8 shadow-2xl ring-1 ring-primary/10/50 backdrop-blur-sm animate-pulse-slow">
-        <div className="flex flex-col lg:flex-row lg:gap-6 items-start justify-between">
-          <div className="max-w-2xl lg:max-w-4xl flex-1">
-            <div className="flex flex-wrap items-center gap-3 mb-6">
-              <span className="text-primary-600 font-bold uppercase tracking-widest text-xs">Resume Studio</span>
-              <span className="text-slate-500 text-xs bg-slate-100/50 px-3 py-1 rounded-full ring-1 ring-slate-200/50">Get noticed by recruiters</span>
-            </div>
-            <h1 className="text-4xl lg:text-5xl font-jakarta font-black text-slate-900 leading-tight mb-6 animate-float">
-              Modern Resume Templates
-            </h1>
-            <p className="text-xl text-slate-600 font-medium max-w-2xl leading-relaxed">
-              Choose from stunning templates, preview instantly, and customize with AI assistance. Export to PDF, Word, or Google Docs.
-            </p>
-          </div>
-
-          <div className="min-w-[280px] mt-8 lg:mt-0 bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl ring-1 ring-primary/10">
-            <div className="text-primary-600 text-sm font-bold uppercase tracking-wide mb-4 flex items-center gap-2">
-              <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse-slow" /> Resume Builder
-            </div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-4">Ready in minutes</h3>
-            <p className="text-slate-600 mb-6 text-sm leading-relaxed">Professional templates optimized for ATS systems and recruiters.</p>
-            <div className="space-y-3">
-              {[
-                { title: "AI Content", value: "Smart suggestions" },
-                { title: "Multi Format", value: "PDF • Word • Docs" },
-                { title: "ATS Ready", value: "100% compatible" },
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 p-2 rounded-xl hover:bg-primary-50/50 transition-all duration-200 group">
-                  <div className="w-2.5 h-2.5 bg-gradient-to-r from-primary-500 to-accent-500 rounded-full shadow-sm flex-shrink-0" />
-                  <div>
-                    <div className="font-semibold text-slate-900 text-sm group-hover:text-primary-700">{item.title}</div>
-                    <div className="text-xs text-slate-500">{item.value}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr", gap: "28px", marginBottom: "40px" }}>
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
-            <div>
-              <h2 style={{ fontSize: "28px", margin: "0 0 8px 0", color: "#111827" }}>
-                {currentStep === "selectType" ? "Choose template type" : `Choose ${selectedType?.name.toLowerCase()} template`}
-              </h2>
-              <p style={{ color: "#6b7280", margin: 0 }}>
-                {currentStep === "selectType"
-                  ? "Select the type of templates you want to browse"
-                  : "Pick a template that matches your style and needs"
-                }
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: "12px" }}>
-              {currentStep === "selectTemplate" && (
-                <button
-                  onClick={handleBackToTypes}
-                  style={{
-                    background: "white",
-                    color: "#6b21a8",
-                    border: "1px solid rgba(124,58,237,0.15)",
-                    borderRadius: "14px",
-                    padding: "12px 22px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                >
-                  ← Back to types
-                </button>
-              )}
-              <button
-                onClick={() => navigate("/dashboard")}
-                style={{
-                  background: "#7c3aed",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "14px",
-                  padding: "12px 22px",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
-              >
-                Back to categories
-              </button>
-            </div>
-          </div>
-
-          {currentStep === "selectType" ? (
-            // Template Type Selection
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: "24px",
-            }}>
-              {templateTypes.map((type, i) => (
-                <div
-                  key={i}
-                  className="template-card"
-                  onClick={() => handleTypeSelect(type)}
-                  style={{
-                    background: "white",
-                    borderRadius: "24px",
-                    padding: "28px",
-                    boxShadow: "0 15px 35px rgba(139,92,246,0.12)",
-                    border: "1px solid rgba(124,58,237,0.08)",
-                    cursor: "pointer",
-                    transition: "all 0.3s ease",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "18px" }}>
-                    <div>
-                      <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#111827", margin: "0 0 8px 0" }}>
-                        {type.name}
-                      </h3>
-                      <p style={{ color: "#4b5563", fontSize: "14px", margin: 0 }}>{type.description}</p>
-                      <p style={{ color: "#7c3aed", fontSize: "12px", fontWeight: 600, margin: "8px 0 0 0" }}>
-                        {type.templates.length} templates available
-                      </p>
-                    </div>
-                    <div style={{
-                      width: 60,
-                      height: 60,
-                      background: `linear-gradient(135deg, ${type.color}, ${type.color}80)`,
-                      borderRadius: "20px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "28px",
-                      color: "white",
-                    }}>
-                      {type.icon}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px" }}>
-                    <span style={{ color: type.color, fontWeight: 700 }}>Browse templates</span>
-                    <span style={{ fontSize: "20px" }}>→</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            // Template Selection
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: "24px",
-            }}>
-              {filteredTemplates.map((template, i) => (
-                <div
-                  key={i}
-                  className="template-card"
-                  onClick={() => navigate(`/editor/resume/${template.name.toLowerCase()}`)}
-                  style={{
-                    background: "white",
-                    borderRadius: "24px",
-                    padding: "28px",
-                    boxShadow: "0 15px 35px rgba(139,92,246,0.12)",
-                    border: "1px solid rgba(124,58,237,0.08)",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "18px" }}>
-                    <div>
-                      <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#111827", margin: "0 0 8px 0" }}>
-                        {template.name}
-                      </h3>
-                      <p style={{ color: "#4b5563", fontSize: "14px", margin: 0 }}>{template.description}</p>
-                    </div>
-                    <div style={{
-                      width: 60,
-                      height: 60,
-                      background: `linear-gradient(135deg, ${template.color}, ${template.color}80)`,
-                      borderRadius: "20px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "28px",
-                      color: "white",
-                    }}>
-                      {template.icon}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px" }}>
-                    <span style={{ color: template.color, fontWeight: 700 }}>Select template</span>
-                    <span style={{ fontSize: "20px" }}>→</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <aside style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          <div style={{ background: "white", borderRadius: "28px", padding: "28px", boxShadow: "0 20px 60px rgba(124,58,237,0.08)" }}>
-            <h4 style={{ fontSize: "20px", margin: 0, color: "#111827" }}>Resume Builder essentials</h4>
-            <p style={{ color: "#6b7280", marginTop: "12px" }}>Everything you need to build a polished resume quickly.</p>
-            <ul style={{ marginTop: "24px", paddingLeft: "18px", color: "#4b5563", lineHeight: 1.8 }}>
-              <li>Template preview before you start</li>
-              <li>Instant download options</li>
-              <li>AI content suggestions</li>
-              <li>Smart spacing and formatting</li>
-              <li>Professional export controls</li>
-            </ul>
-          </div>
-
-          <div style={{ background: "linear-gradient(135deg, #eef2ff, #f5f3ff)", borderRadius: "28px", padding: "28px", boxShadow: "0 20px 60px rgba(124,58,237,0.08)" }}>
-            <div style={{ display: "flex", gap: "14px", alignItems: "center", marginBottom: "18px" }}>
-              <div style={{ width: 48, height: 48, borderRadius: "16px", background: "#7c3aed", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "24px" }}>🤖</div>
-              <div>
-                <p style={{ margin: 0, fontWeight: 700, color: "#111827" }}>Need help with content?</p>
-                <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>Use our AI assistant to polish wording fast.</p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate("/editor/resume/ai-helper")}
-              style={{
-                width: "100%",
-                border: "none",
-                borderRadius: "16px",
-                padding: "14px 0",
-                background: "#7c3aed",
-                color: "white",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              Open AI assistant
-            </button>
-          </div>
-
-          <div style={{ background: "white", borderRadius: "28px", padding: "28px", boxShadow: "0 20px 60px rgba(124,58,237,0.08)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-              <span style={{ width: 12, height: 12, borderRadius: "50%", background: "#0ea5e9", display: "inline-block" }} />
-              <p style={{ margin: 0, fontWeight: 700, color: "#111827" }}>How it works</p>
-            </div>
-            <ol style={{ paddingLeft: "18px", color: "#4b5563", lineHeight: 1.9 }}>
-              <li>Select a template style</li>
-              <li>Edit text and layout</li>
-              <li>Preview instantly</li>
-              <li>Download or share</li>
-            </ol>
-          </div>
-        </aside>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "24px" }}>
-        {[
-          { title: "Download formats", description: "Export as PDF, DOCX, or Google Docs." },
-          { title: "Ready for recruiters", description: "Built-in ATS-friendly structure." },
-          { title: "Mobile editing", description: "Use your browser from any device." },
-          { title: "Template preview", description: "See the layout before you start." },
-        ].map((feature, i) => (
-          <div key={i} style={{ background: "white", borderRadius: "24px", padding: "28px", boxShadow: "0 15px 35px rgba(139,92,246,0.08)" }}>
-            <h4 style={{ margin: 0, fontSize: "18px", color: "#111827" }}>{feature.title}</h4>
-            <p style={{ marginTop: "12px", color: "#4b5563", lineHeight: 1.8 }}>{feature.description}</p>
-          </div>
-        ))}
-      </div>
-    </Layout>
+    <BuilderStep
+      template={selectedTemplate}
+      config={config}
+      onBack={() => setStep("configure")}
+      onChangeTemplate={() => setStep("gallery")}
+    />
   );
 }
-
-export default ResumePage;

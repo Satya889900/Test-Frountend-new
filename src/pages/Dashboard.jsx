@@ -1,735 +1,395 @@
-import { useEffect, useState, useRef } from "react";
+// Dashboard.jsx — DocStudio Premium Dashboard
+// Drop-in replacement. Requires: react-router-dom, Layout component.
+// No extra npm packages needed.
+
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Layout from "../components/Layout";
+
+// ─── Data ─────────────────────────────────────────────────────────────────────
 
 const documentTypes = [
-  { name: "Resume / CV", icon: "◈", color: "#6366f1", glow: "#4f46e5", tag: "Most Used", route: "/resume-builder", description: "Professional resume templates", preview: "Modern, ATS-friendly resume design" },
-  { name: "Business Letter", icon: "✉", color: "#ec4899", glow: "#db2777", tag: "Popular", route: "/letter-builder", description: "Formal business correspondence", preview: "Clean business letter layout" },
-  { name: "Invoice", icon: "◎", color: "#10b981", glow: "#059669", tag: "Quick", route: "/invoice-builder", description: "Professional invoice templates", preview: "Clear invoice design" },
-  { name: "Contract", icon: "⊞", color: "#f59e0b", glow: "#d97706", tag: "Legal", route: "/contract-builder", description: "Legal contract templates", preview: "Structured contract layout" },
-  { name: "Presentation", icon: "▣", color: "#3b82f6", glow: "#2563eb", tag: "Pro", route: "/presentation-builder", description: "Slide presentation templates", preview: "Stylish presentation design" },
-  { name: "Report", icon: "≡", color: "#f97316", glow: "#ea580c", tag: "Business", route: "/report-builder", description: "Business report templates", preview: "Professional report layout" },
-  { name: "Newsletter", icon: "◉", color: "#ef4444", glow: "#dc2626", tag: "Marketing", route: "/newsletter-builder", description: "Email newsletter templates", preview: "Readable newsletter style" },
-  { name: "Brochure", icon: "⊡", color: "#8b5cf6", glow: "#7c3aed", tag: "Design", route: "/brochure-builder", description: "Marketing brochure templates", preview: "Eye-catching brochure design" },
-  { name: "Certificate", icon: "✦", color: "#06b6d4", glow: "#0891b2", tag: "Award", route: "/certificate-builder", description: "Award certificate templates", preview: "Elegant certificate style" },
-  { name: "Agenda", icon: "◆", color: "#84cc16", glow: "#65a30d", tag: "Meeting", route: "/agenda-builder", description: "Meeting agenda templates", preview: "Organized agenda layout" },
-  { name: "Memo", icon: "⊠", color: "#fb923c", glow: "#f97316", tag: "Internal", route: "/memo-builder", description: "Internal memo templates", preview: "Simple memo format" },
-  { name: "Proposal", icon: "⊕", color: "#6366f1", glow: "#4f46e5", tag: "Sales", route: "/proposal-builder", description: "Business proposal templates", preview: "Focused proposal design" },
-  { name: "Flyer", icon: "◇", color: "#f472b6", glow: "#ec4899", tag: "Event", route: "/flyer-builder", description: "Promotional flyer templates", preview: "Bold flyer layout" },
-  { name: "Card", icon: "▪", color: "#14b8a6", glow: "#0f766e", tag: "Creative", route: "/card-builder", description: "Greeting/business card templates", preview: "Modern card design" },
-  { name: "Form", icon: "⊟", color: "#c026d3", glow: "#a21caf", tag: "Custom", route: "/form-builder", description: "Custom form templates", preview: "Clean form layout" },
-  { name: "Calendar", icon: "◈", color: "#eab308", glow: "#ca8a04", tag: "Planning", route: "/calendar-builder", description: "Calendar templates", preview: "Neat calendar design" },
-  { name: "Planner", icon: "◉", color: "#4ade80", glow: "#16a34a", tag: "Daily", route: "/planner-builder", description: "Personal planner templates", preview: "Organized planner layout" },
-  { name: "Budget", icon: "◎", color: "#22c55e", glow: "#15803d", tag: "Finance", route: "/budget-builder", description: "Budget planning templates", preview: "Clear budget planner" },
-  { name: "Schedule", icon: "⊞", color: "#f87171", glow: "#ef4444", tag: "Time", route: "/schedule-builder", description: "Schedule templates", preview: "Easy schedule layout" },
-  { name: "Checklist", icon: "✓", color: "#60a5fa", glow: "#3b82f6", tag: "Tasks", route: "/checklist-builder", description: "Task checklist templates", preview: "Minimal checklist design" },
-  { name: "Worksheet", icon: "▣", color: "#a78bfa", glow: "#7c3aed", tag: "Education", route: "/worksheet-builder", description: "Educational worksheet templates", preview: "Clean worksheet style" },
-  { name: "Chart", icon: "≡", color: "#22d3ee", glow: "#06b6d4", tag: "Data", route: "/chart-builder", description: "Data visualization templates", preview: "Visual chart layout" },
+  { name: "Resume / CV",      icon: "📄", color: "#6366f1", glow: "#4f46e5", tag: "Most Used",  route: "/resume-builder",       description: "Professional resume & CV templates"    },
+  { name: "Business Letter",  icon: "✉️",  color: "#ec4899", glow: "#db2777", tag: "Popular",    route: "/letter-builder",        description: "Formal business correspondence"         },
+  { name: "Invoice",          icon: "🧾", color: "#10b981", glow: "#059669", tag: "Quick",      route: "/invoice-builder",       description: "Professional invoice templates"          },
+  { name: "Contract",         icon: "📋", color: "#f59e0b", glow: "#d97706", tag: "Legal",      route: "/contract-builder",      description: "Legal contract templates"                },
+  { name: "Presentation",     icon: "📊", color: "#3b82f6", glow: "#2563eb", tag: "Pro",        route: "/presentation-builder",  description: "Slide presentation templates"            },
+  { name: "Report",           icon: "📑", color: "#f97316", glow: "#ea580c", tag: "Business",   route: "/report-builder",        description: "Business report templates"               },
+  { name: "Newsletter",       icon: "📰", color: "#ef4444", glow: "#dc2626", tag: "Marketing",  route: "/newsletter-builder",    description: "Email newsletter templates"              },
+  { name: "Brochure",         icon: "🗂️", color: "#8b5cf6", glow: "#7c3aed", tag: "Design",     route: "/brochure-builder",      description: "Marketing brochure templates"            },
+  { name: "Certificate",      icon: "🏅", color: "#06b6d4", glow: "#0891b2", tag: "Award",      route: "/certificate-builder",   description: "Award certificate templates"             },
+  { name: "Agenda",           icon: "📅", color: "#84cc16", glow: "#65a30d", tag: "Meeting",    route: "/agenda-builder",        description: "Meeting agenda templates"                },
+  { name: "Memo",             icon: "📝", color: "#fb923c", glow: "#f97316", tag: "Internal",   route: "/memo-builder",          description: "Internal memo templates"                 },
+  { name: "Proposal",         icon: "💼", color: "#6366f1", glow: "#4f46e5", tag: "Sales",      route: "/proposal-builder",      description: "Business proposal templates"             },
+  { name: "Flyer",            icon: "📢", color: "#f472b6", glow: "#ec4899", tag: "Event",      route: "/flyer-builder",         description: "Promotional flyer templates"             },
+  { name: "Card",             icon: "🪪", color: "#14b8a6", glow: "#0f766e", tag: "Creative",   route: "/card-builder",          description: "Greeting & business card templates"      },
+  { name: "Form",             icon: "📃", color: "#c026d3", glow: "#a21caf", tag: "Custom",     route: "/form-builder",          description: "Custom form templates"                   },
+  { name: "Calendar",         icon: "🗓️", color: "#eab308", glow: "#ca8a04", tag: "Planning",   route: "/calendar-builder",      description: "Calendar templates"                      },
+  { name: "Planner",          icon: "🗒️", color: "#4ade80", glow: "#16a34a", tag: "Daily",      route: "/planner-builder",       description: "Personal planner templates"              },
+  { name: "Budget",           icon: "💰", color: "#22c55e", glow: "#15803d", tag: "Finance",    route: "/budget-builder",        description: "Budget planning templates"               },
+  { name: "Schedule",         icon: "⏱️", color: "#f87171", glow: "#ef4444", tag: "Time",       route: "/schedule-builder",      description: "Schedule templates"                      },
+  { name: "Checklist",        icon: "✅", color: "#60a5fa", glow: "#3b82f6", tag: "Tasks",      route: "/checklist-builder",     description: "Task checklist templates"                },
+  { name: "Worksheet",        icon: "📚", color: "#a78bfa", glow: "#7c3aed", tag: "Education",  route: "/worksheet-builder",     description: "Educational worksheet templates"          },
+  { name: "Chart",            icon: "📈", color: "#22d3ee", glow: "#06b6d4", tag: "Data",       route: "/chart-builder",         description: "Data visualization templates"            },
 ];
 
-const stats = [
-  { label: "Templates", value: "1,284", sub: "+12 this week", icon: "◈", accent: "#6366f1" },
-  { label: "Downloaded", value: "892", sub: "+34 today", icon: "↓", accent: "#10b981" },
-  { label: "Time Saved", value: "156h", sub: "~7 days saved", icon: "◎", accent: "#f59e0b" },
-  { label: "Users", value: "2,450", sub: "Growing daily", icon: "◉", accent: "#ec4899" },
+const STATS = [
+  { label: "Templates",  value: "1,284", raw: 1284, sub: "+12 this week", icon: "◈", accent: "#6366f1", bg: "#eef2ff" },
+  { label: "Downloaded", value: "892",   raw: 892,  sub: "+34 today",     icon: "↓", accent: "#10b981", bg: "#ecfdf5" },
+  { label: "Time Saved", value: "156h",  raw: 156,  sub: "~7 days saved", icon: "◎", accent: "#f59e0b", bg: "#fffbeb" },
+  { label: "Users",      value: "2,450", raw: 2450, sub: "Growing daily", icon: "◉", accent: "#ec4899", bg: "#fdf2f8" },
 ];
 
-const resumeDesigns = [
-  {
-    title: "Professional",
-    subtitle: "Clean structure for experienced roles",
-    accent: "#7c3aed",
-    surface: "linear-gradient(180deg, #ffffff 0%, #f6f3ff 100%)",
-    variant: "professional",
-  },
-  {
-    title: "Modern",
-    subtitle: "Sharp sections with a stylish header",
-    accent: "#db2777",
-    surface: "linear-gradient(180deg, #fff1f7 0%, #ffffff 100%)",
-    variant: "modern",
-  },
-  {
-    title: "Creative",
-    subtitle: "Bold presentation for design-heavy profiles",
-    accent: "#22c55e",
-    surface: "linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%)",
-    variant: "creative",
-  },
-  {
-    title: "Minimal",
-    subtitle: "Simple, readable, recruiter-friendly layout",
-    accent: "#eab308",
-    surface: "linear-gradient(180deg, #fffbeb 0%, #ffffff 100%)",
-    variant: "minimal",
-  },
-  {
-    title: "Classic",
-    subtitle: "Timeless format with balanced typography",
-    accent: "#3b82f6",
-    surface: "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)",
-    variant: "classic",
-  },
+const RECENT = [
+  { name: "Senior Dev Resume",   type: "Resume / CV",     time: "2 hours ago",  icon: "📄", color: "#6366f1", status: "Draft"     },
+  { name: "Q4 Sales Proposal",   type: "Proposal",        time: "Yesterday",    icon: "💼", color: "#10b981", status: "Completed" },
+  { name: "Client Invoice #114", type: "Invoice",         time: "2 days ago",   icon: "🧾", color: "#f59e0b", status: "Sent"      },
+  { name: "Team Meeting Agenda", type: "Agenda",          time: "3 days ago",   icon: "📅", color: "#84cc16", status: "Completed" },
+  { name: "Product Brochure",    type: "Brochure",        time: "1 week ago",   icon: "🗂️", color: "#8b5cf6", status: "Draft"     },
 ];
 
-function DocCard({ doc, index, navigate }) {
-  const [hover, setHover] = useState(false);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const ref = useRef();
+const QUICK_ACTIONS = [
+  { label: "New Resume",   icon: "📄", route: "/resume-builder",   color: "#6366f1", bg: "#eef2ff" },
+  { label: "New Invoice",  icon: "🧾", route: "/invoice-builder",  color: "#10b981", bg: "#ecfdf5" },
+  { label: "New Proposal", icon: "💼", route: "/proposal-builder", color: "#f59e0b", bg: "#fffbeb" },
+  { label: "New Letter",   icon: "✉️",  route: "/letter-builder",   color: "#ec4899", bg: "#fdf2f8" },
+];
 
-  const handleMouseMove = (e) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 14;
-    const y = ((e.clientY - rect.top) / rect.height - 0.5) * -14;
-    setTilt({ x, y });
-  };
+const TABS = ["All", "Resume", "Business", "Legal", "Creative", "Planning"];
+const TAB_FILTER = {
+  All:      () => true,
+  Resume:   (d) => d.name === "Resume / CV",
+  Business: (d) => ["Invoice","Contract","Report","Proposal","Business Letter"].includes(d.name),
+  Legal:    (d) => d.name === "Contract",
+  Creative: (d) => ["Brochure","Flyer","Card","Newsletter","Certificate"].includes(d.name),
+  Planning: (d) => ["Agenda","Checklist","Calendar","Planner","Schedule","Budget"].includes(d.name),
+};
 
+// ─── Animated counter ─────────────────────────────────────────────────────────
+function AnimCount({ target, suffix = "" }) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    const dur = 1500, t0 = Date.now();
+    const tick = () => {
+      const p = Math.min((Date.now() - t0) / dur, 1);
+      setV(Math.floor((1 - Math.pow(1 - p, 3)) * target));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [target]);
+  return <>{v.toLocaleString()}{suffix}</>;
+}
+
+
+
+// ─── Top bar ──────────────────────────────────────────────────────────────────
+function TopBar({ search, setSearch, navigate, time }) {
   return (
-    <div
-      ref={ref}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => { setHover(false); setTilt({ x: 0, y: 0 }); }}
-      onMouseMove={handleMouseMove}
-      onClick={() => navigate(doc.route)}
-      style={{
-        position: "relative",
-        borderRadius: "28px",
-        padding: "32px 28px",
-        cursor: "pointer",
-        background: "rgba(255, 255, 255, 0.75)",
-        backdropFilter: "blur(20px)",
-        border: `1px solid rgba(255,255,255,0.9)`,
-        boxShadow: hover
-          ? "0 25px 60px -15px rgba(99, 102, 241, 0.25), 0 10px 30px rgba(0,0,0,0.08)"
-          : "0 12px 35px -10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.6)",
-        transform: hover
-          ? `perspective(900px) rotateY(${tilt.x}deg) rotateX(${tilt.y}deg) translateY(-10px) scale(1.04)`
-          : "perspective(900px) rotateY(0) rotateX(0) translateY(0) scale(1)",
-        transition: "all 0.4s cubic-bezier(0.23, 1, 0.32, 1)",
-        overflow: "hidden",
-      }}
-    >
-      {/* Glass highlight */}
-      <div style={{
-        position: "absolute",
-        top: "-50%",
-        left: "-50%",
-        width: "80%",
-        height: "60%",
-        background: "linear-gradient(135deg, rgba(255,255,255,0.9), transparent)",
-        opacity: hover ? 0.25 : 0.1,
-        transition: "opacity 0.5s",
-        pointerEvents: "none",
-      }} />
-
-      {/* Tag */}
-      <div style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "5px 14px",
-        borderRadius: "9999px",
-        fontSize: "10.5px",
-        fontWeight: "700",
-        letterSpacing: "0.8px",
-        textTransform: "uppercase",
-        background: `${doc.color}15`,
-        color: doc.color,
-        border: `1px solid ${doc.color}30`,
-      }}>
-        {doc.tag}
+    <header style={{ background: "#fff", borderBottom: "1px solid #f1f5f9", padding: "12px 24px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", position: "sticky", top: 0, zIndex: 10 }}>
+      <div style={{ position: "relative", flex: 1, maxWidth: 400 }}>
+        <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", fontSize: 14, opacity: 0.35 }}>🔍</span>
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search templates..." style={{ width: "100%", padding: "9px 14px 9px 38px", border: "1.5px solid #e2e8f0", borderRadius: 11, fontSize: 13, outline: "none", background: "#f8fafc", color: "#0f172a", fontFamily: "inherit" }} />
       </div>
 
-      {/* Icon */}
-      <div style={{
-        fontSize: "46px",
-        lineHeight: 1,
-        margin: "24px 0 18px",
-        color: doc.color,
-        filter: hover ? `drop-shadow(0 0 20px ${doc.glow}aa)` : "none",
-        transition: "filter 0.4s ease",
-      }}>
-        {doc.icon}
-      </div>
+      <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
+        {/* Notification bell */}
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "#f8fafc", border: "1.5px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16, position: "relative" }}>
+          🔔
+          <div style={{ position: "absolute", top: 6, right: 7, width: 7, height: 7, borderRadius: "50%", background: "#ef4444", border: "2px solid #fff" }} />
+        </div>
 
-      {/* Name */}
-      <div style={{
-        fontSize: "17px",
-        fontWeight: "700",
-        color: "#1e2937",
-        marginBottom: "10px",
-        letterSpacing: "-0.4px",
-      }}>
-        {doc.name}
-      </div>
+        {/* Clock */}
+        <div style={{ fontSize: 12, color: "#94a3b8", fontVariantNumeric: "tabular-nums", background: "#f8fafc", padding: "7px 12px", borderRadius: 10, border: "1.5px solid #f1f5f9" }}>
+          {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        </div>
 
-      {/* Description */}
-      <div style={{ color: "#475569", fontSize: "14px", lineHeight: 1.6, marginBottom: "16px" }}>
-        {doc.description}
+        <button onClick={() => navigate("/resume-builder")} style={{ padding: "9px 18px", borderRadius: 11, border: "none", background: "linear-gradient(135deg,#6366f1,#a855f7)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+          + New
+        </button>
       </div>
+    </header>
+  );
+}
 
-      {/* Preview chip */}
-      <div style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "8px",
-        padding: "10px 14px",
-        borderRadius: "18px",
-        background: `${doc.color}15`,
-        border: `1px solid ${doc.color}25`,
-        color: doc.color,
-        fontSize: "13px",
-        fontWeight: 600,
-        marginBottom: "16px",
-      }}>
-        <span style={{ fontSize: "14px" }}>⌘</span>
-        {doc.preview}
+// ─── Hero banner ──────────────────────────────────────────────────────────────
+function HeroBanner({ user, navigate, greeting }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div style={{ borderRadius: 22, overflow: "hidden", position: "relative", background: "linear-gradient(135deg,#4338ca 0%,#7c3aed 55%,#a855f7 100%)", padding: "34px 36px", marginBottom: 22, color: "#fff" }}>
+      {/* Decorative orbs */}
+      <div style={{ position: "absolute", width: 260, height: 260, borderRadius: "50%", background: "rgba(255,255,255,0.07)", top: -80, right: -60, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", background: "rgba(255,255,255,0.06)", bottom: -40, right: 100, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.08)", top: 20, right: 260, pointerEvents: "none" }} />
+
+      <div style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 24 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 100, padding: "5px 14px", fontSize: 12, fontWeight: 600, marginBottom: 14 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
+            Good {greeting}, {user.name}
+          </div>
+          <h1 style={{ fontSize: "clamp(24px,3vw,38px)", fontWeight: 800, letterSpacing: "-1px", lineHeight: 1.1, margin: "0 0 10px" }}>
+            Create stunning<br />documents today
+          </h1>
+          <p style={{ fontSize: 14, opacity: 0.8, margin: "0 0 22px", lineHeight: 1.65, maxWidth: 380 }}>
+            1,284+ professional templates ready to customise and download in seconds.
+          </p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} onClick={() => navigate("/resume-builder")}
+              style={{ padding: "11px 22px", borderRadius: 11, border: "none", background: "#fff", color: "#4f46e5", fontWeight: 700, fontSize: 13, cursor: "pointer", transform: hov ? "scale(1.03)" : "scale(1)", transition: "transform 0.18s", fontFamily: "inherit" }}>
+              Browse Templates →
+            </button>
+            <button onClick={() => navigate("/resume-builder")}
+              style={{ padding: "11px 22px", borderRadius: 11, border: "1.5px solid rgba(255,255,255,0.35)", background: "transparent", color: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+              Create Resume
+            </button>
+          </div>
+        </div>
+
+        {/* Mini doc stack */}
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexShrink: 0 }}>
+          {[
+            { h: 130, label: "Resume",  rotate: -3, opacity: 1   },
+            { h: 110, label: "Invoice", rotate: 1,  opacity: 0.88 },
+            { h: 95,  label: "Letter",  rotate: 4,  opacity: 0.75 },
+          ].map((d, i) => (
+            <div key={i} style={{ width: 68, height: d.h, background: `rgba(255,255,255,${d.opacity})`, borderRadius: 10, padding: "8px 7px", display: "flex", flexDirection: "column", gap: 4, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", transform: `rotate(${d.rotate}deg)`, flexShrink: 0 }}>
+              <div style={{ height: 5, borderRadius: 2, background: "#6366f1", width: "65%" }} />
+              {[90, 75, 80, 65, 85].map((w, j) => (
+                <div key={j} style={{ height: 3, borderRadius: 2, background: "#e2e8f0", width: `${w}%` }} />
+              ))}
+              <div style={{ height: 18, borderRadius: 5, background: "#eef2ff", marginTop: 2 }} />
+              <div style={{ height: 3, borderRadius: 2, background: "#e2e8f0", width: "80%" }} />
+              <div style={{ fontSize: 7, color: "#6366f1", fontWeight: 700, marginTop: "auto" }}>{d.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
-
-      {/* Arrow */}
-      <div style={{
-        fontSize: "14px",
-        fontWeight: "600",
-        color: doc.color,
-        opacity: hover ? 1 : 0.8,
-        transform: hover ? "translateX(6px)" : "translateX(0)",
-        transition: "all 0.3s ease",
-      }}>
-        Open Builder →
-      </div>
-
-      {/* Bottom glow orb */}
-      <div style={{
-        position: "absolute",
-        bottom: "-40px",
-        right: "-40px",
-        width: "110px",
-        height: "110px",
-        borderRadius: "50%",
-        background: `radial-gradient(circle, ${doc.glow}30 20%, transparent 70%)`,
-        opacity: hover ? 0.9 : 0.3,
-        transition: "opacity 0.5s",
-      }} />
     </div>
   );
 }
 
-function StatCard({ stat, index }) {
-  const [count, setCount] = useState(0);
-  const target = parseInt(stat.value.replace(/,/g, "").replace("h", ""));
-
-  useEffect(() => {
-    const duration = 1400;
-    const start = Date.now() + index * 100;
-    const animate = () => {
-      const elapsed = Date.now() - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
-  }, [index]);
-
-  const displayVal = stat.value.includes("h") ? `${count}h` : count.toLocaleString();
-
+// ─── Stat card ────────────────────────────────────────────────────────────────
+function StatCard({ stat }) {
+  const [hov, setHov] = useState(false);
+  const isHours = stat.value.includes("h");
   return (
-    <div style={{
-      background: "rgba(255,255,255,0.78)",
-      backdropFilter: "blur(18px)",
-      border: "1px solid rgba(255,255,255,0.95)",
-      borderRadius: "24px",
-      padding: "28px 26px",
-      boxShadow: "0 15px 40px -15px rgba(0,0,0,0.12)",
-      transition: "transform 0.3s ease",
-    }}>
-      <div style={{ fontSize: "29px", color: stat.accent, marginBottom: "14px" }}>{stat.icon}</div>
-      <div style={{ fontSize: "38px", fontWeight: "800", color: "#0f172a", letterSpacing: "-1.2px" }}>
-        {displayVal}
+    <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ background: "#fff", borderRadius: 18, padding: "20px 18px", border: `1.5px solid ${hov ? stat.accent + "44" : "#f1f5f9"}`, transition: "all 0.22s", transform: hov ? "translateY(-3px)" : "none", boxShadow: hov ? `0 12px 32px ${stat.accent}18` : "0 2px 8px rgba(0,0,0,0.04)", cursor: "default" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: stat.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{stat.icon}</div>
+        <span style={{ fontSize: 10, fontWeight: 700, color: stat.accent, background: stat.bg, padding: "2px 9px", borderRadius: 100 }}>{stat.sub}</span>
       </div>
-      <div style={{ color: "#475569", fontWeight: "600", marginTop: "6px" }}>{stat.label}</div>
-      <div style={{ color: stat.accent, fontSize: "13px", marginTop: "4px" }}>{stat.sub}</div>
+      <div style={{ fontSize: 30, fontWeight: 800, color: "#0f172a", letterSpacing: "-1.2px", lineHeight: 1 }}>
+        <AnimCount target={stat.raw} suffix={isHours ? "h" : ""} />
+      </div>
+      <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600, marginTop: 5 }}>{stat.label}</div>
     </div>
   );
 }
 
-function ResumeDesignCard({ design, navigate }) {
-  const previewCommon = {
-    background: design.surface,
-    border: `1px solid ${design.accent}22`,
-    borderRadius: "18px",
-    padding: "18px",
-    minHeight: "230px",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9)",
-    overflow: "hidden",
-  };
-
-  const line = (width, extra = {}) => (
-    <div
-      style={{
-        height: "8px",
-        width,
-        borderRadius: "999px",
-        background: `${design.accent}22`,
-        ...extra,
-      }}
-    />
-  );
-
-  const renderPreview = () => {
-    if (design.variant === "professional") {
-      return (
-        <div style={{ ...previewCommon, display: "grid", gridTemplateColumns: "78px 1fr", gap: "14px" }}>
-          <div style={{ background: design.accent, borderRadius: "14px", padding: "14px 10px", display: "grid", alignContent: "start", gap: "10px" }}>
-            <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(255,255,255,0.9)" }} />
-            <div style={{ height: "8px", borderRadius: "999px", background: "rgba(255,255,255,0.85)" }} />
-            <div style={{ height: "8px", width: "75%", borderRadius: "999px", background: "rgba(255,255,255,0.65)" }} />
-            <div style={{ height: "52px", borderRadius: "12px", background: "rgba(255,255,255,0.16)" }} />
-          </div>
-          <div style={{ display: "grid", alignContent: "start", gap: "10px" }}>
-            {line("62%", { height: "12px", background: design.accent })}
-            {line("38%")}
-            <div style={{ height: "1px", background: `${design.accent}30`, margin: "4px 0 6px" }} />
-            {line("100%")}
-            {line("86%")}
-            {line("92%")}
-            <div style={{ height: "48px", borderRadius: "14px", background: `${design.accent}12`, marginTop: "6px" }} />
-          </div>
-        </div>
-      );
-    }
-
-    if (design.variant === "modern") {
-      return (
-        <div style={previewCommon}>
-          <div style={{ height: "54px", borderRadius: "14px", background: `linear-gradient(90deg, ${design.accent}, ${design.accent}aa)`, marginBottom: "16px", padding: "14px" }}>
-            <div style={{ height: "10px", width: "42%", borderRadius: "999px", background: "rgba(255,255,255,0.92)", marginBottom: "8px" }} />
-            <div style={{ height: "8px", width: "26%", borderRadius: "999px", background: "rgba(255,255,255,0.68)" }} />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "14px" }}>
-            <div style={{ display: "grid", gap: "10px" }}>
-              {line("100%")}
-              {line("92%")}
-              {line("84%")}
-              <div style={{ height: "52px", borderRadius: "14px", background: `${design.accent}12` }} />
-            </div>
-            <div style={{ display: "grid", gap: "10px" }}>
-              <div style={{ height: "70px", borderRadius: "14px", background: `${design.accent}15` }} />
-              {line("88%")}
-              {line("66%")}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (design.variant === "creative") {
-      return (
-        <div style={previewCommon}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 56px", gap: "12px", marginBottom: "16px" }}>
-            <div style={{ height: "58px", borderRadius: "18px", background: `linear-gradient(135deg, ${design.accent}, #0f172a)`, padding: "14px" }}>
-              <div style={{ height: "10px", width: "44%", borderRadius: "999px", background: "rgba(255,255,255,0.9)", marginBottom: "10px" }} />
-              <div style={{ height: "8px", width: "30%", borderRadius: "999px", background: "rgba(255,255,255,0.6)" }} />
-            </div>
-            <div style={{ borderRadius: "18px", background: `${design.accent}25` }} />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
-            <div style={{ height: "86px", borderRadius: "16px", background: `${design.accent}18` }} />
-            <div style={{ display: "grid", gap: "10px" }}>
-              {line("100%")}
-              {line("80%")}
-              <div style={{ height: "52px", borderRadius: "14px", background: "#0f172a0e" }} />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (design.variant === "minimal") {
-      return (
-        <div style={previewCommon}>
-          <div style={{ display: "grid", justifyItems: "center", marginBottom: "18px" }}>
-            <div style={{ width: "50px", height: "50px", borderRadius: "50%", border: `2px solid ${design.accent}55`, marginBottom: "12px" }} />
-            {line("48%", { height: "11px", background: "#1f2937" })}
-            {line("28%")}
-          </div>
-          <div style={{ display: "grid", gap: "10px" }}>
-            <div style={{ height: "1px", background: "#e5e7eb", marginBottom: "4px" }} />
-            {line("100%")}
-            {line("96%")}
-            {line("82%")}
-            <div style={{ height: "1px", background: "#e5e7eb", margin: "6px 0 2px" }} />
-            {line("90%")}
-            {line("70%")}
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div style={previewCommon}>
-        <div style={{ border: `2px solid ${design.accent}`, borderRadius: "14px", padding: "14px", marginBottom: "14px" }}>
-          {line("40%", { height: "11px", background: design.accent })}
-          {line("28%", { marginTop: "10px" })}
-        </div>
-        <div style={{ display: "grid", gap: "10px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "90px 1fr", gap: "12px", alignItems: "start" }}>
-            <div style={{ height: "72px", borderRadius: "14px", background: `${design.accent}18` }} />
-            <div style={{ display: "grid", gap: "10px" }}>
-              {line("100%")}
-              {line("84%")}
-              {line("72%")}
-            </div>
-          </div>
-          <div style={{ height: "42px", borderRadius: "14px", background: "#0f172a0b" }} />
-        </div>
-      </div>
-    );
-  };
-
+// ─── Quick action ─────────────────────────────────────────────────────────────
+function QuickAction({ action, navigate }) {
+  const [hov, setHov] = useState(false);
   return (
-    <button
-      onClick={() => navigate("/resume-builder")}
-      style={{
-        textAlign: "left",
-        border: "none",
-        width: "100%",
-        padding: "18px",
-        borderRadius: "26px",
-        cursor: "pointer",
-        background: "rgba(255,255,255,0.92)",
-        boxShadow: "0 18px 45px -20px rgba(15, 23, 42, 0.18)",
-        transition: "transform 0.25s ease, box-shadow 0.25s ease",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-6px)";
-        e.currentTarget.style.boxShadow = "0 26px 55px -22px rgba(15, 23, 42, 0.24)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 18px 45px -20px rgba(15, 23, 42, 0.18)";
-      }}
-    >
-      {renderPreview()}
-      <div style={{ marginTop: "18px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
-          <div>
-            <div style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a" }}>{design.title}</div>
-            <div style={{ fontSize: "14px", color: "#475569", marginTop: "6px", lineHeight: 1.6 }}>{design.subtitle}</div>
-          </div>
-          <div style={{ minWidth: "42px", height: "42px", borderRadius: "14px", background: `${design.accent}15`, color: design.accent, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "800" }}>
-            CV
-          </div>
-        </div>
-        <div style={{ marginTop: "14px", color: design.accent, fontSize: "14px", fontWeight: "700" }}>
-          Open resume page â†’
-        </div>
-      </div>
-    </button>
+    <div onClick={() => navigate(action.route)} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ background: hov ? action.color : "#fff", border: `1.5px solid ${hov ? action.color : "#f1f5f9"}`, borderRadius: 13, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", transition: "all 0.18s", transform: hov ? "translateY(-2px)" : "none", boxShadow: hov ? `0 8px 22px ${action.color}2e` : "none" }}>
+      <div style={{ width: 32, height: 32, borderRadius: 9, background: hov ? "rgba(255,255,255,0.2)" : action.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{action.icon}</div>
+      <span style={{ fontSize: 13, fontWeight: 600, color: hov ? "#fff" : "#0f172a" }}>{action.label}</span>
+    </div>
   );
 }
 
-function Aurora() {
-  const canvasRef = useRef();
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    let frame = 0;
-    let raf;
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const blobs = [
-      { x: 0.2, y: 0.25, r: 0.42, color: [99, 102, 241], speed: 0.0004 },
-      { x: 0.8, y: 0.2, r: 0.35, color: [236, 72, 153], speed: 0.00055 },
-      { x: 0.4, y: 0.75, r: 0.38, color: [16, 185, 129], speed: 0.0003 },
-    ];
-
-    const draw = () => {
-      frame++;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const W = canvas.width, H = canvas.height;
-
-      blobs.forEach((b, i) => {
-        const t = frame * b.speed;
-        const cx = (b.x + Math.sin(t + i) * 0.1) * W;
-        const cy = (b.y + Math.cos(t * 0.8) * 0.08) * H;
-        const r = b.r * Math.max(W, H);
-
-        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 1.4);
-        const [R, G, B] = b.color;
-        grad.addColorStop(0, `rgba(${R},${G},${B},0.09)`);
-        grad.addColorStop(0.5, `rgba(${R},${G},${B},0.03)`);
-        grad.addColorStop(1, "transparent");
-
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, r * 1.25, r * 0.75, t * 0.4, 0, Math.PI * 2);
-        ctx.fillStyle = grad;
-        ctx.fill();
-      });
-
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-
+// ─── Doc card ─────────────────────────────────────────────────────────────────
+function DocCard({ doc, navigate }) {
+  const [hov, setHov] = useState(false);
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 0,
-        opacity: 0.65,
-        pointerEvents: "none",
-      }}
-    />
+    <div onClick={() => navigate(doc.route)} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ background: "#fff", borderRadius: 16, padding: "18px 16px", border: `1.5px solid ${hov ? doc.color + "44" : "#f1f5f9"}`, cursor: "pointer", transition: "all 0.2s", transform: hov ? "translateY(-4px)" : "none", boxShadow: hov ? `0 12px 32px ${doc.color}1a` : "0 2px 8px rgba(0,0,0,0.04)", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: 0, right: 0, width: 55, height: 55, borderRadius: "0 16px 0 55px", background: doc.color + "0d" }} />
+      <span style={{ fontSize: 9, fontWeight: 700, color: doc.color, background: doc.color + "14", padding: "3px 9px", borderRadius: 100, letterSpacing: "0.06em", textTransform: "uppercase" }}>{doc.tag}</span>
+      <div style={{ fontSize: 30, margin: "12px 0 8px", lineHeight: 1 }}>{doc.icon}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 5, letterSpacing: "-0.3px" }}>{doc.name}</div>
+      <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.5, marginBottom: 13 }}>{doc.description}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: doc.color, display: "flex", alignItems: "center", gap: 3, transform: hov ? "translateX(4px)" : "none", transition: "transform 0.18s" }}>
+        Open builder →
+      </div>
+    </div>
   );
 }
 
+// ─── Recent row ───────────────────────────────────────────────────────────────
+function RecentRow({ doc }) {
+  const sc = { Draft: { bg: "#fef9c3", c: "#854d0e" }, Completed: { bg: "#dcfce7", c: "#166534" }, Sent: { bg: "#dbeafe", c: "#1e40af" } }[doc.status] || {};
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid #f8fafc" }}>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: doc.color + "14", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{doc.icon}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</div>
+        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{doc.type} · {doc.time}</div>
+      </div>
+      <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 100, background: sc.bg, color: sc.c, flexShrink: 0 }}>{doc.status}</span>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const [user] = useState({ name: "Satya" });
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [time, setTime] = useState(new Date());
+  const navigate  = useNavigate();
+  const [user]    = useState({ name: "Satya" });
+  const [loading, setLoading]  = useState(true);
+  const [search,  setSearch]   = useState("");
+  const [time,    setTime]     = useState(new Date());
+  const [tab,     setTab]      = useState("All");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    setTimeout(() => setLoading(false), 650);
-
+    if (!token) { navigate("/login"); return; }
+    setTimeout(() => setLoading(false), 600);
     const ti = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(ti);
   }, [navigate]);
 
-  const filtered = documentTypes.filter(d =>
-    d.name.toLowerCase().includes(search.toLowerCase()) ||
-    d.tag.toLowerCase().includes(search.toLowerCase())
+  const hour     = time.getHours();
+  const greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
+
+  const filtered = documentTypes.filter((d) => {
+    const ms = !search || d.name.toLowerCase().includes(search.toLowerCase()) || d.tag.toLowerCase().includes(search.toLowerCase());
+    return ms && TAB_FILTER[tab](d);
+  });
+
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 48, height: 48, margin: "0 auto 18px", border: "3px solid #e2e8f0", borderTopColor: "#6366f1", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <div style={{ color: "#94a3b8", fontSize: 14, fontFamily: "Inter, sans-serif" }}>Preparing your workspace…</div>
+      </div>
+    </div>
   );
 
-  const hour = time.getHours();
-  const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
-
-  if (loading) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ width: 64, height: 64, margin: "0 auto 24px", border: "4px solid #e2e8f0", borderTopColor: "#6366f1", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-          <div style={{ color: "#64748b" }}>Preparing your workspace...</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <Layout userName={user.name} showLogout={true}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'Inter', sans-serif", background: "#f8fafc" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
-        * { box-sizing: border-box; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        *{box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;margin:0}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        ::-webkit-scrollbar{width:4px}
+        ::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:10px}
+        ::-webkit-scrollbar-track{background:transparent}
       `}</style>
 
-      <div style={{
-        minHeight: "100vh",
-        background: "linear-gradient(145deg, #f0f4ff 0%, #e0e7ff 100%)",
-        position: "relative",
-        overflow: "hidden",
-        fontFamily: "'Sora', sans-serif",
-      }}>
-        <Aurora />
+      {/* Top Bar */}
+      <TopBar search={search} setSearch={setSearch} navigate={navigate} time={time} />
 
-        <div style={{ position: "relative", zIndex: 2, maxWidth: "1440px", margin: "0 auto", padding: "40px 40px 100px" }}>
-          
-          {/* Top Bar */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "56px", flexWrap: "wrap", gap: "24px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <div style={{
-                width: "56px", height: "56px", borderRadius: "18px",
-                background: "linear-gradient(135deg, #6366f1, #a855f7)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "26px", color: "#fff", boxShadow: "0 10px 30px rgba(99,102,241,0.4)",
-              }}>◈</div>
-              <div>
-                <div style={{ fontSize: "24px", fontWeight: "800", letterSpacing: "-0.7px" }}>DocStudio</div>
-                <div style={{ fontSize: "13px", color: "#64748b" }}>
-                  {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </div>
+      {/* Scrollable main */}
+      <main style={{ flex: 1, overflowY: "auto", padding: "22px 24px 56px" }}>
+
+            {/* Hero */}
+            <HeroBanner user={user} navigate={navigate} greeting={greeting} />
+
+            {/* Quick actions */}
+            <section style={{ marginBottom: 22 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#cbd5e1", textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 10 }}>Quick create</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 10 }}>
+                {QUICK_ACTIONS.map((a) => <QuickAction key={a.label} action={a} navigate={navigate} />)}
               </div>
-            </div>
+            </section>
 
-            {/* Search Bar - Glassy */}
-            <div style={{ position: "relative", flex: "1", maxWidth: "440px" }}>
-              <span style={{ position: "absolute", left: "20px", top: "50%", transform: "translateY(-50%)", color: "#64748b", fontSize: "18px" }}>⌕</span>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search templates..."
-                style={{
-                  width: "100%",
-                  padding: "16px 20px 16px 56px",
-                  background: "rgba(255,255,255,0.85)",
-                  backdropFilter: "blur(16px)",
-                  border: "1px solid rgba(255,255,255,0.9)",
-                  borderRadius: "18px",
-                  fontSize: "15.5px",
-                  boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
-                  outline: "none",
-                }}
-              />
-            </div>
+            {/* Stats */}
+            <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: 22 }}>
+              {STATS.map((s) => <StatCard key={s.label} stat={s} />)}
+            </section>
 
-            <button
-              onClick={() => navigate("/resume-builder")}
-              style={{
-                padding: "14px 32px",
-                borderRadius: "16px",
-                border: "none",
-                background: "linear-gradient(135deg, #6366f1, #a855f7)",
-                color: "#fff",
-                fontWeight: "700",
-                fontSize: "14.5px",
-                cursor: "pointer",
-                boxShadow: "0 12px 30px rgba(99,102,241,0.35)",
-              }}
-            >
-              Explore All Templates →
-            </button>
-          </div>
+            {/* Body grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 292px", gap: 18, alignItems: "start" }}>
 
-          {/* Hero Banner - Glassy */}
-          <div style={{
-            borderRadius: "32px",
-            padding: "60px 56px",
-            background: "rgba(255,255,255,0.82)",
-            backdropFilter: "blur(24px)",
-            border: "1px solid rgba(255,255,255,0.95)",
-            boxShadow: "0 25px 70px -20px rgba(0,0,0,0.15)",
-            marginBottom: "52px",
-            position: "relative",
-            overflow: "hidden",
-          }}>
-            <div style={{ position: "relative", zIndex: 2 }}>
-              <div style={{
-                display: "inline-flex", alignItems: "center", gap: "10px",
-                padding: "8px 20px", borderRadius: "9999px",
-                background: "rgba(99,102,241,0.1)", color: "#6366f1",
-                fontSize: "13.5px", fontWeight: "600",
-              }}>
-                <span style={{ display: "inline-block", width: "8px", height: "8px", background: "#6366f1", borderRadius: "50%", animation: "pulse 2s infinite" }} />
-                {greeting}, {user.name}
-              </div>
-
-              <h1 style={{
-                fontSize: "clamp(34px, 5.2vw, 54px)",
-                fontWeight: "800",
-                lineHeight: 1.05,
-                letterSpacing: "-2px",
-                margin: "24px 0 16px",
-                color: "#0f172a",
-              }}>
-                Design stunning documents<br />
-                with <span style={{ background: "linear-gradient(90deg, #6366f1, #c026d3)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>glass-like elegance</span>
-              </h1>
-
-              <p style={{ fontSize: "17.5px", color: "#475569", maxWidth: "560px" }}>
-                1,284+ beautiful templates. Professional, modern, and ready in seconds.
-              </p>
-            </div>
-          </div>
-
-          {/* Resume Design Preview */}
-          <div style={{ marginBottom: "56px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "24px" }}>
-              <div>
-                <div style={{ fontSize: "13px", letterSpacing: "1.5px", color: "#64748b", fontWeight: "600" }}>
-                  RESUME DESIGNS • 5 PREVIEWED
+              {/* Left — templates */}
+              <section>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.5px" }}>
+                      {search ? `Results for "${search}"` : "All Document Types"}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 3 }}>{filtered.length} of {documentTypes.length} templates</div>
+                  </div>
+                  {search && <button onClick={() => setSearch("")} style={{ fontSize: 12, color: "#6366f1", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>Clear</button>}
                 </div>
-                <h2 style={{ fontSize: "27px", fontWeight: "800", margin: "8px 0 0", color: "#0f172a", letterSpacing: "-0.8px" }}>
-                  Explore resume template styles
-                </h2>
-              </div>
-              <button
-                onClick={() => navigate("/resume-builder")}
-                style={{
-                  padding: "14px 28px",
-                  borderRadius: "16px",
-                  border: "none",
-                  background: "linear-gradient(135deg, #6366f1, #a855f7)",
-                  color: "#fff",
-                  fontWeight: "700",
-                  cursor: "pointer",
-                }}
-              >
-                View all resume templates
-              </button>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
-              {resumeDesigns.map((design) => (
-                <ResumeDesignCard
-                  key={design.title}
-                  design={design}
-                  navigate={navigate}
-                />
-              ))}
-            </div>
-          </div>
 
-          {/* Stats Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "20px", marginBottom: "56px" }}>
-            {stats.map((s, i) => <StatCard key={s.label} stat={s} index={i} />)}
-          </div>
-
-          {/* Document Types Section */}
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px" }}>
-              <div>
-                <div style={{ fontSize: "13px", letterSpacing: "1.5px", color: "#64748b", fontWeight: "600" }}>
-                  22 CATEGORIES • {filtered.length} TEMPLATES
+                {/* Tabs */}
+                <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+                  {TABS.map((t) => (
+                    <button key={t} onClick={() => setTab(t)}
+                      style={{ padding: "6px 15px", borderRadius: 100, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1.5px solid", fontFamily: "inherit", transition: "all 0.14s", borderColor: tab === t ? "#6366f1" : "#e2e8f0", background: tab === t ? "#6366f1" : "#fff", color: tab === t ? "#fff" : "#64748b" }}
+                    >{t}</button>
+                  ))}
                 </div>
-                <h2 style={{ fontSize: "27px", fontWeight: "800", margin: 0, color: "#0f172a", letterSpacing: "-0.8px" }}>
-                  {search ? `Results for "${search}"` : "All Document Types"}
-                </h2>
-              </div>
-              {search && (
-                <button onClick={() => setSearch("")} style={{ color: "#64748b", fontWeight: "500" }}>
-                  Clear
-                </button>
-              )}
-            </div>
 
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(245px, 1fr))",
-              gap: "20px",
-            }}>
-              {filtered.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "80px", color: "#64748b" }}>
-                  No matching templates found
+                {filtered.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "56px 20px", background: "#fff", borderRadius: 16, color: "#94a3b8" }}>
+                    <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>No templates found for "{search}"</div>
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(182px, 1fr))", gap: 12 }}>
+                    {filtered.map((d) => <DocCard key={d.name} doc={d} navigate={navigate} />)}
+                  </div>
+                )}
+              </section>
+
+              {/* Right sidebar */}
+              <aside style={{ display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 74 }}>
+
+                {/* Recent docs */}
+                <div style={{ background: "#fff", borderRadius: 18, padding: "18px 16px", border: "1.5px solid #f1f5f9" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Recent documents</span>
+                    <span style={{ fontSize: 11, color: "#6366f1", fontWeight: 600, cursor: "pointer" }}>View all</span>
+                  </div>
+                  {RECENT.map((d) => <RecentRow key={d.name} doc={d} />)}
                 </div>
-              ) : (
-                filtered.map((doc, i) => (
-                  <DocCard key={doc.name} doc={doc} index={i} navigate={navigate} />
-                ))
-              )}
+
+                {/* AI promo */}
+                <div style={{ background: "linear-gradient(135deg,#4338ca,#7c3aed)", borderRadius: 18, padding: "18px 16px", color: "#fff" }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>🤖</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 5 }}>AI Assistant</div>
+                  <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.55, marginBottom: 14 }}>
+                    Let AI write, rewrite, and polish your documents instantly.
+                  </div>
+                  <button onClick={() => navigate("/ai-assistant")}
+                    style={{ width: "100%", padding: "9px", borderRadius: 10, border: "1.5px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.15)", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                    Try AI Assistant →
+                  </button>
+                </div>
+
+                {/* Pro tip */}
+                <div style={{ background: "#fffbeb", borderRadius: 18, padding: "16px", border: "1.5px solid #fef3c7" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#92400e", marginBottom: 6 }}>💡 Pro tip</div>
+                  <div style={{ fontSize: 12, color: "#78350f", lineHeight: 1.55 }}>
+                    Use the ATS-friendly resume template to pass automated recruiter filters. Add keywords from the job description for best results.
+                  </div>
+                </div>
+
+                {/* Popular this week */}
+                <div style={{ background: "#fff", borderRadius: 18, padding: "16px", border: "1.5px solid #f1f5f9" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>🔥 Popular this week</div>
+                  {[
+                    { name: "Minimal ATS Resume",    count: "2.3k downloads", color: "#6366f1" },
+                    { name: "Corporate Proposal",    count: "1.8k downloads", color: "#10b981" },
+                    { name: "Modern Invoice",        count: "1.2k downloads", color: "#f59e0b" },
+                  ].map((p) => (
+                    <div key={p.name} onClick={() => navigate("/resume-builder")}
+                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid #f8fafc", cursor: "pointer" }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.color, flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>{p.name}</div>
+                        <div style={{ fontSize: 10, color: "#94a3b8" }}>{p.count}</div>
+                      </div>
+                      <span style={{ fontSize: 11, color: p.color }}>→</span>
+                    </div>
+                  ))}
+                </div>
+              </aside>
             </div>
-          </div>
-        </div>
-      </div>
-    </Layout>
+        </main>
+    </div>
   );
 }

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Layout from "../components/Layout";
 
 function BusinessLetterPage() {
   const navigate = useNavigate();
@@ -84,7 +83,7 @@ function BusinessLetterPage() {
   }
 
   return (
-    <Layout userName={user.name} showLogout={true}>
+    <div style={{ padding: "24px", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
@@ -367,7 +366,7 @@ function BusinessLetterPage() {
           </div>
         ))}
       </div>
-    </Layout>
+    </div>
   );
 }
 

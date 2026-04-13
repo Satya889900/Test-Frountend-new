@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { registerUser } from "../../services/api";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -72,6 +73,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 50);
@@ -82,13 +84,13 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/api/users/register`, {
+      const data = await registerUser({
         name: name.value,
         email: email.value,
         password: pass.value,
       });
-      alert("Account Created Successfully ✅");
-      navigate("/login"); // or "/dashboard" if you auto-login
+      login(data); // auto login after register
+      navigate("/dashboard");
     } catch (err) {
       alert(err.response?.data?.message || "Registration failed");
     } finally {
