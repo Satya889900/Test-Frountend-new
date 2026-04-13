@@ -7,22 +7,43 @@ function Sidebar({ onCollapseChange }) {
   const [collapsed, setCollapsed] = useState(false);
 
   const handleCollapse = () => {
-    setCollapsed(!collapsed);
+    const nextCollapsed = !collapsed;
+    setCollapsed(nextCollapsed);
     if (onCollapseChange) {
-      onCollapseChange(!collapsed);
+      onCollapseChange(nextCollapsed);
     }
   };
 
-  const menuItems = [
-    { icon: "📊", label: "Dashboard", path: "/dashboard" },
-    { icon: "📁", label: "Projects", path: "/projects" },
-    { icon: "📈", label: "Reports", path: "/reports" },
-    { icon: "👥", label: "Users", path: "/users" },
-    { icon: "⚙️", label: "Settings", path: "/settings" },
-    { icon: "💬", label: "Messages", path: "/messages" },
+  const primaryItems = [
+    { icon: "🏠", label: "Dashboard", path: "/dashboard" },
+    { icon: "📄", label: "Resume", path: "/resume-builder" },
+    { icon: "✉️", label: "Business Letter", path: "/letter-builder" },
+  ];
+
+  const quickItems = [
+    { icon: "📝", label: "Word", path: "/letter-builder" },
+    { icon: "📬", label: "Letter", path: "/letter-builder" },
+    { icon: "📧", label: "Mail", path: "/letter-builder" },
   ];
 
   const isActive = (path) => location.pathname === path;
+
+  const renderItem = (item, active = false) => (
+    <div
+      key={item.label}
+      className={`sidebar-item ${active ? "active" : ""}`}
+      onClick={() => navigate(item.path)}
+      style={{
+        position: "relative",
+        justifyContent: collapsed ? "center" : "flex-start",
+        padding: collapsed ? "14px 14px" : "14px 18px",
+      }}
+      title={collapsed ? item.label : ""}
+    >
+      <span style={{ fontSize: "20px", minWidth: "20px" }}>{item.icon}</span>
+      {!collapsed && <span>{item.label}</span>}
+    </div>
+  );
 
   return (
     <>
@@ -31,12 +52,11 @@ function Sidebar({ onCollapseChange }) {
           display: flex;
           align-items: center;
           gap: 14px;
-          padding: 14px 18px;
           border-radius: 14px;
           cursor: pointer;
           transition: all 0.3s ease;
           color: #6b21a8;
-          font-weight: 500;
+          font-weight: 600;
           white-space: nowrap;
         }
 
@@ -98,7 +118,6 @@ function Sidebar({ onCollapseChange }) {
           boxShadow: "4px 0 20px rgba(124, 58, 237, 0.08)",
         }}
       >
-        {/* Collapse Button */}
         <div
           style={{
             display: "flex",
@@ -115,27 +134,18 @@ function Sidebar({ onCollapseChange }) {
           </button>
         </div>
 
-        {/* Menu Items */}
-        <nav style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {menuItems.map((item, i) => (
-            <div
-              key={i}
-              className={`sidebar-item ${isActive(item.path) ? "active" : ""}`}
-              onClick={() => navigate(item.path)}
-              style={{
-                position: "relative",
-                justifyContent: collapsed ? "center" : "flex-start",
-                padding: collapsed ? "14px 14px" : "14px 18px",
-              }}
-              title={collapsed ? item.label : ""}
-            >
-              <span style={{ fontSize: "20px", minWidth: "20px" }}>{item.icon}</span>
-              {!collapsed && <span>{item.label}</span>}
+        {!collapsed && (
+          <div style={{ marginBottom: "18px", padding: "0 8px" }}>
+            <div style={{ fontSize: "12px", fontWeight: 700, color: "#a78bfa", letterSpacing: "1px", textTransform: "uppercase" }}>
+              Main Menu
             </div>
-          ))}
+          </div>
+        )}
+
+        <nav style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {primaryItems.map((item) => renderItem(item, isActive(item.path)))}
         </nav>
 
-        {/* Divider */}
         <hr
           style={{
             margin: "24px 0",
@@ -144,18 +154,30 @@ function Sidebar({ onCollapseChange }) {
           }}
         />
 
-        {/* Additional Section */}
-        <div style={{ color: "#a78bfa", fontSize: "12px", fontWeight: 600, padding: "8px 8px", marginBottom: "16px" }}>
-          {!collapsed && "SUPPORT"}
+        <div style={{ color: "#a78bfa", fontSize: "12px", fontWeight: 700, padding: "8px 8px", marginBottom: "12px", letterSpacing: "1px", textTransform: "uppercase" }}>
+          {!collapsed && "Quick Create"}
         </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {quickItems.map((item) => renderItem(item, false))}
+        </div>
+
+        <hr
+          style={{
+            margin: "24px 0",
+            border: "none",
+            borderTop: "1px solid rgba(124, 58, 237, 0.1)",
+          }}
+        />
+
         <div
           className="sidebar-item"
-          onClick={() => navigate("/help")}
+          onClick={() => navigate("/dashboard")}
           style={{
             justifyContent: collapsed ? "center" : "flex-start",
             padding: collapsed ? "14px 14px" : "14px 18px",
           }}
-          title={collapsed ? "Help" : ""}
+          title={collapsed ? "Back Home" : ""}
         >
           <span style={{ fontSize: "20px", minWidth: "20px" }}>❓</span>
           {!collapsed && <span>Help</span>}

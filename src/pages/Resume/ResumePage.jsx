@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
+// import { MagnifyingGlassIcon, ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 function ResumePage() {
   const navigate = useNavigate();
@@ -78,88 +79,50 @@ function ResumePage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#faf9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: 56, height: 56, border: "5px solid #e0d4ff", borderTopColor: "#7c3aed", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-14 h-14 border-4 border-primary-50/50 border-t-primary-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <Layout userName={user.name} showLogout={true}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    <Layout userName={user.name} showLogout={true} showSidebar={false}>
 
-        * { font-family: 'Plus Jakarta Sans', sans-serif; }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .template-card {
-          transition: all 0.3s ease;
-          cursor: pointer;
-        }
-        .template-card:hover {
-          transform: scale(1.02);
-          box-shadow: 0 15px 35px rgba(139,92,246,0.15);
-        }
-
-        .filter-chip {
-          display: inline-flex;
-          align-items: center;
-          padding: 10px 18px;
-          border-radius: 999px;
-          border: 1px solid rgba(124,58,237,0.15);
-          background: white;
-          color: #6b21a8;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-        .filter-chip.active {
-          background: #7c3aed;
-          color: white;
-          border-color: #7c3aed;
-        }
-      `}</style>
 
       {/* Header */}
-      <div style={{
-        background: "linear-gradient(90deg, #f8fafc 0%, #eef2ff 50%, #f8f4ff 100%)",
-        borderRadius: "28px",
-        padding: "32px 40px",
-        marginBottom: "32px",
-        position: "relative",
-        overflow: "hidden",
-        boxShadow: "0 20px 60px rgba(124,58,237,0.08)",
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "24px", alignItems: "flex-start" }}>
-          <div style={{ maxWidth: "680px" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "24px" }}>
-              <span style={{ color: "#4f46e5", fontWeight: 700, fontSize: "12px", letterSpacing: "1px", textTransform: "uppercase" }}>Resume studio</span>
-              <span style={{ color: "#6b7280", fontSize: "12px" }}>Create professional resumes that get noticed by recruiters.</span>
+      <div className="bg-gradient-to-r from-slate-50 via-primary-50 to-emerald-50/30 rounded-3xl p-8 lg:p-10 mb-8 shadow-2xl ring-1 ring-primary/10/50 backdrop-blur-sm animate-pulse-slow">
+        <div className="flex flex-col lg:flex-row lg:gap-6 items-start justify-between">
+          <div className="max-w-2xl lg:max-w-4xl flex-1">
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              <span className="text-primary-600 font-bold uppercase tracking-widest text-xs">Resume Studio</span>
+              <span className="text-slate-500 text-xs bg-slate-100/50 px-3 py-1 rounded-full ring-1 ring-slate-200/50">Get noticed by recruiters</span>
             </div>
-            <h1 style={{ fontSize: "42px", lineHeight: 1.05, color: "#111827", margin: 0 }}>
-              Resume templates made simple.
+            <h1 className="text-4xl lg:text-5xl font-jakarta font-black text-slate-900 leading-tight mb-6 animate-float">
+              Modern Resume Templates
             </h1>
-            <p style={{ fontSize: "18px", color: "#4b5563", marginTop: "20px", maxWidth: "560px" }}>
-              Select a template style, preview it instantly, and start editing on the next page. Everything is designed for speed, clarity, and professional results.
+            <p className="text-xl text-slate-600 font-medium max-w-2xl leading-relaxed">
+              Choose from stunning templates, preview instantly, and customize with AI assistance. Export to PDF, Word, or Google Docs.
             </p>
           </div>
 
-          <div style={{ minWidth: "260px", background: "white", borderRadius: "24px", padding: "24px", boxShadow: "0 20px 60px rgba(124,58,237,0.09)" }}>
-            <div style={{ fontSize: "14px", fontWeight: 700, color: "#7c3aed", marginBottom: "16px" }}>Resume Builder</div>
-            <h3 style={{ fontSize: "22px", margin: 0, color: "#111827" }}>Start faster with modern templates</h3>
-            <p style={{ color: "#6b7280", margin: "16px 0 24px" }}>All templates are optimized for print, web, and download. Generate in PDF or Word with a single click.</p>
-            <div style={{ display: "grid", gap: "14px" }}>
+          <div className="min-w-[280px] mt-8 lg:mt-0 bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl ring-1 ring-primary/10">
+            <div className="text-primary-600 text-sm font-bold uppercase tracking-wide mb-4 flex items-center gap-2">
+              <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse-slow" /> Resume Builder
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-4">Ready in minutes</h3>
+            <p className="text-slate-600 mb-6 text-sm leading-relaxed">Professional templates optimized for ATS systems and recruiters.</p>
+            <div className="space-y-3">
               {[
-                { title: "AI Guidance", value: "Built-in prompts and suggestions" },
-                { title: "Download Options", value: "PDF, DOCX, Google Docs" },
-                { title: "ATS-friendly", value: "Recruiter-ready formatting" },
+                { title: "AI Content", value: "Smart suggestions" },
+                { title: "Multi Format", value: "PDF • Word • Docs" },
+                { title: "ATS Ready", value: "100% compatible" },
               ].map((item, idx) => (
-                <div key={idx} style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#7c3aed" }} />
+                <div key={idx} className="flex items-center gap-3 p-2 rounded-xl hover:bg-primary-50/50 transition-all duration-200 group">
+                  <div className="w-2.5 h-2.5 bg-gradient-to-r from-primary-500 to-accent-500 rounded-full shadow-sm flex-shrink-0" />
                   <div>
-                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#111827" }}>{item.title}</div>
-                    <div style={{ fontSize: "13px", color: "#6b7280" }}>{item.value}</div>
+                    <div className="font-semibold text-slate-900 text-sm group-hover:text-primary-700">{item.title}</div>
+                    <div className="text-xs text-slate-500">{item.value}</div>
                   </div>
                 </div>
               ))}

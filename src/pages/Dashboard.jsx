@@ -34,6 +34,44 @@ const stats = [
   { label: "Users", value: "2,450", sub: "Growing daily", icon: "◉", accent: "#ec4899" },
 ];
 
+const resumeDesigns = [
+  {
+    title: "Professional",
+    subtitle: "Clean structure for experienced roles",
+    accent: "#7c3aed",
+    surface: "linear-gradient(180deg, #ffffff 0%, #f6f3ff 100%)",
+    variant: "professional",
+  },
+  {
+    title: "Modern",
+    subtitle: "Sharp sections with a stylish header",
+    accent: "#db2777",
+    surface: "linear-gradient(180deg, #fff1f7 0%, #ffffff 100%)",
+    variant: "modern",
+  },
+  {
+    title: "Creative",
+    subtitle: "Bold presentation for design-heavy profiles",
+    accent: "#22c55e",
+    surface: "linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%)",
+    variant: "creative",
+  },
+  {
+    title: "Minimal",
+    subtitle: "Simple, readable, recruiter-friendly layout",
+    accent: "#eab308",
+    surface: "linear-gradient(180deg, #fffbeb 0%, #ffffff 100%)",
+    variant: "minimal",
+  },
+  {
+    title: "Classic",
+    subtitle: "Timeless format with balanced typography",
+    accent: "#3b82f6",
+    surface: "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)",
+    variant: "classic",
+  },
+];
+
 function DocCard({ doc, index, navigate }) {
   const [hover, setHover] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -215,6 +253,182 @@ function StatCard({ stat, index }) {
   );
 }
 
+function ResumeDesignCard({ design, navigate }) {
+  const previewCommon = {
+    background: design.surface,
+    border: `1px solid ${design.accent}22`,
+    borderRadius: "18px",
+    padding: "18px",
+    minHeight: "230px",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9)",
+    overflow: "hidden",
+  };
+
+  const line = (width, extra = {}) => (
+    <div
+      style={{
+        height: "8px",
+        width,
+        borderRadius: "999px",
+        background: `${design.accent}22`,
+        ...extra,
+      }}
+    />
+  );
+
+  const renderPreview = () => {
+    if (design.variant === "professional") {
+      return (
+        <div style={{ ...previewCommon, display: "grid", gridTemplateColumns: "78px 1fr", gap: "14px" }}>
+          <div style={{ background: design.accent, borderRadius: "14px", padding: "14px 10px", display: "grid", alignContent: "start", gap: "10px" }}>
+            <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(255,255,255,0.9)" }} />
+            <div style={{ height: "8px", borderRadius: "999px", background: "rgba(255,255,255,0.85)" }} />
+            <div style={{ height: "8px", width: "75%", borderRadius: "999px", background: "rgba(255,255,255,0.65)" }} />
+            <div style={{ height: "52px", borderRadius: "12px", background: "rgba(255,255,255,0.16)" }} />
+          </div>
+          <div style={{ display: "grid", alignContent: "start", gap: "10px" }}>
+            {line("62%", { height: "12px", background: design.accent })}
+            {line("38%")}
+            <div style={{ height: "1px", background: `${design.accent}30`, margin: "4px 0 6px" }} />
+            {line("100%")}
+            {line("86%")}
+            {line("92%")}
+            <div style={{ height: "48px", borderRadius: "14px", background: `${design.accent}12`, marginTop: "6px" }} />
+          </div>
+        </div>
+      );
+    }
+
+    if (design.variant === "modern") {
+      return (
+        <div style={previewCommon}>
+          <div style={{ height: "54px", borderRadius: "14px", background: `linear-gradient(90deg, ${design.accent}, ${design.accent}aa)`, marginBottom: "16px", padding: "14px" }}>
+            <div style={{ height: "10px", width: "42%", borderRadius: "999px", background: "rgba(255,255,255,0.92)", marginBottom: "8px" }} />
+            <div style={{ height: "8px", width: "26%", borderRadius: "999px", background: "rgba(255,255,255,0.68)" }} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "14px" }}>
+            <div style={{ display: "grid", gap: "10px" }}>
+              {line("100%")}
+              {line("92%")}
+              {line("84%")}
+              <div style={{ height: "52px", borderRadius: "14px", background: `${design.accent}12` }} />
+            </div>
+            <div style={{ display: "grid", gap: "10px" }}>
+              <div style={{ height: "70px", borderRadius: "14px", background: `${design.accent}15` }} />
+              {line("88%")}
+              {line("66%")}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (design.variant === "creative") {
+      return (
+        <div style={previewCommon}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 56px", gap: "12px", marginBottom: "16px" }}>
+            <div style={{ height: "58px", borderRadius: "18px", background: `linear-gradient(135deg, ${design.accent}, #0f172a)`, padding: "14px" }}>
+              <div style={{ height: "10px", width: "44%", borderRadius: "999px", background: "rgba(255,255,255,0.9)", marginBottom: "10px" }} />
+              <div style={{ height: "8px", width: "30%", borderRadius: "999px", background: "rgba(255,255,255,0.6)" }} />
+            </div>
+            <div style={{ borderRadius: "18px", background: `${design.accent}25` }} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
+            <div style={{ height: "86px", borderRadius: "16px", background: `${design.accent}18` }} />
+            <div style={{ display: "grid", gap: "10px" }}>
+              {line("100%")}
+              {line("80%")}
+              <div style={{ height: "52px", borderRadius: "14px", background: "#0f172a0e" }} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (design.variant === "minimal") {
+      return (
+        <div style={previewCommon}>
+          <div style={{ display: "grid", justifyItems: "center", marginBottom: "18px" }}>
+            <div style={{ width: "50px", height: "50px", borderRadius: "50%", border: `2px solid ${design.accent}55`, marginBottom: "12px" }} />
+            {line("48%", { height: "11px", background: "#1f2937" })}
+            {line("28%")}
+          </div>
+          <div style={{ display: "grid", gap: "10px" }}>
+            <div style={{ height: "1px", background: "#e5e7eb", marginBottom: "4px" }} />
+            {line("100%")}
+            {line("96%")}
+            {line("82%")}
+            <div style={{ height: "1px", background: "#e5e7eb", margin: "6px 0 2px" }} />
+            {line("90%")}
+            {line("70%")}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={previewCommon}>
+        <div style={{ border: `2px solid ${design.accent}`, borderRadius: "14px", padding: "14px", marginBottom: "14px" }}>
+          {line("40%", { height: "11px", background: design.accent })}
+          {line("28%", { marginTop: "10px" })}
+        </div>
+        <div style={{ display: "grid", gap: "10px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "90px 1fr", gap: "12px", alignItems: "start" }}>
+            <div style={{ height: "72px", borderRadius: "14px", background: `${design.accent}18` }} />
+            <div style={{ display: "grid", gap: "10px" }}>
+              {line("100%")}
+              {line("84%")}
+              {line("72%")}
+            </div>
+          </div>
+          <div style={{ height: "42px", borderRadius: "14px", background: "#0f172a0b" }} />
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <button
+      onClick={() => navigate("/resume-builder")}
+      style={{
+        textAlign: "left",
+        border: "none",
+        width: "100%",
+        padding: "18px",
+        borderRadius: "26px",
+        cursor: "pointer",
+        background: "rgba(255,255,255,0.92)",
+        boxShadow: "0 18px 45px -20px rgba(15, 23, 42, 0.18)",
+        transition: "transform 0.25s ease, box-shadow 0.25s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-6px)";
+        e.currentTarget.style.boxShadow = "0 26px 55px -22px rgba(15, 23, 42, 0.24)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 18px 45px -20px rgba(15, 23, 42, 0.18)";
+      }}
+    >
+      {renderPreview()}
+      <div style={{ marginTop: "18px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+          <div>
+            <div style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a" }}>{design.title}</div>
+            <div style={{ fontSize: "14px", color: "#475569", marginTop: "6px", lineHeight: 1.6 }}>{design.subtitle}</div>
+          </div>
+          <div style={{ minWidth: "42px", height: "42px", borderRadius: "14px", background: `${design.accent}15`, color: design.accent, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "800" }}>
+            CV
+          </div>
+        </div>
+        <div style={{ marginTop: "14px", color: design.accent, fontSize: "14px", fontWeight: "700" }}>
+          Open resume page â†’
+        </div>
+      </div>
+    </button>
+  );
+}
+
 function Aurora() {
   const canvasRef = useRef();
   useEffect(() => {
@@ -380,7 +594,7 @@ export default function Dashboard() {
             </div>
 
             <button
-              onClick={() => navigate("/templates")}
+              onClick={() => navigate("/resume-builder")}
               style={{
                 padding: "14px 32px",
                 borderRadius: "16px",
@@ -465,51 +679,12 @@ export default function Dashboard() {
               </button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
-              {[
-                { title: "Modern Professional", subtitle: "Clean, resume-ready layout", color: "#6366f1" },
-                { title: "Minimal Bold", subtitle: "Simple sections with strong headings", color: "#ec4899" },
-                { title: "Creative Splash", subtitle: "Unique styling for designers", color: "#10b981" },
-                { title: "Classic Executive", subtitle: "Timeless, polished format", color: "#f59e0b" },
-                { title: "ATS Friendly", subtitle: "Optimized for recruiter systems", color: "#3b82f6" },
-              ].map((design, i) => (
-                <div
-                  key={i}
-                  onClick={() => navigate("/resume-builder")}
-                  style={{
-                    cursor: "pointer",
-                    borderRadius: "24px",
-                    padding: "24px",
-                    background: "rgba(255,255,255,0.9)",
-                    backdropFilter: "blur(18px)",
-                    border: `1px solid rgba(255,255,255,0.9)`,
-                    boxShadow: "0 18px 45px -20px rgba(15, 23, 42, 0.18)",
-                    transition: "transform 0.3s ease, box-shadow 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-6px)"}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
-                    <div>
-                      <div style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: "700", color: design.color }}>
-                        RESUME
-                      </div>
-                      <div style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", marginTop: "8px" }}>
-                        {design.title}
-                      </div>
-                    </div>
-                    <div style={{ width: "48px", height: "48px", borderRadius: "16px", background: design.color, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "700" }}>
-                      R{i + 1}
-                    </div>
-                  </div>
-                  <div style={{ color: "#475569", fontSize: "14px", lineHeight: 1.7, marginBottom: "18px" }}>
-                    {design.subtitle}
-                  </div>
-                  <div style={{ display: "grid", gap: "10px" }}>
-                    <div style={{ height: "8px", borderRadius: "999px", background: `${design.color}25` }} />
-                    <div style={{ height: "8px", borderRadius: "999px", background: `${design.color}25`, width: "80%" }} />
-                    <div style={{ height: "8px", borderRadius: "999px", background: `${design.color}25`, width: "60%" }} />
-                  </div>
-                </div>
+              {resumeDesigns.map((design) => (
+                <ResumeDesignCard
+                  key={design.title}
+                  design={design}
+                  navigate={navigate}
+                />
               ))}
             </div>
           </div>

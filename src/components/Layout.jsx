@@ -2,19 +2,19 @@ import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import { useState } from "react";
 
-function Layout({ children, showLogout = true, userName = "User" }) {
+function Layout({ children, showLogout = true, userName = "User", showSidebar = true }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", width: "100%" }}>
       {/* Sidebar */}
-      <Sidebar onCollapseChange={setSidebarCollapsed} />
+      {showSidebar && <Sidebar onCollapseChange={setSidebarCollapsed} />}
 
       {/* Main Content */}
       <div
         style={{
           flex: 1,
-          marginLeft: sidebarCollapsed ? "80px" : "260px",
+          marginLeft: showSidebar ? (sidebarCollapsed ? "80px" : "260px") : "0",
           background: "linear-gradient(135deg, #f8f4ff 0%, #f0e6ff 50%, #faf9ff 100%)",
           position: "relative",
           overflow: "auto",
