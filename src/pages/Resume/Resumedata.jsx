@@ -143,17 +143,22 @@ export const DEFAULT_FORM = {
   title: "Software Engineer",
   email: "john@email.com",
   phone: "+1 234 567 890",
-  linkedin: "",
+  linkedin: "linkedin.com/in/johndoe",
+  github: "github.com/johndoe",
+  twitter: "",
+  portfolio: "",
   summary: "Experienced developer with 5+ years building scalable web applications.",
-  jobtitle: "Senior Developer",
-  company: "Acme Corp",
-  jobstart: "2021",
-  jobend: "Present",
-  jobdesc: "Led development of core product features serving 1M+ users.",
-  degree: "B.S. Computer Science",
-  school: "State University",
-  gradyear: "2020",
+  experience: [
+    { id: "1", jobtitle: "Senior Developer", company: "Acme Corp", jobstart: "2021", jobend: "Present", jobdesc: "Led development of core product features serving 1M+ users." }
+  ],
+  education: [
+    { id: "1", degree: "B.S. Computer Science", school: "State University", gradyear: "2020", gpa: "3.8" }
+  ],
   skills: "JavaScript, React, Node.js, Python",
-  language: "English",
-  langLevel: "Native",
+  languages: [
+    { id: "1", language: "English", langLevel: "Native" }
+  ],
+  projects: [],
+  certifications: [],
+  interests: "Photography, Open Source, Hiking",
 };

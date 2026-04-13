@@ -219,8 +219,7 @@ export default function ProfilePage() {
   const handleResumeDownload = async () => {
     setResumeLoading(true);
     try {
-      const { downloadUrl } = await downloadResume();
-      window.open(downloadUrl, "_blank");
+      await downloadResume();
     } catch (err) {
       showToast(err.response?.data?.message || "Download failed", "error");
     } finally {
@@ -387,7 +386,7 @@ export default function ProfilePage() {
                   <input
                     ref={fileRef}
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx"
                     style={{ display: "none" }}
                     onChange={handleResumeUpload}
                   />
@@ -424,13 +423,13 @@ export default function ProfilePage() {
                 <input
                   ref={fileRef}
                   type="file"
-                  accept=".pdf,.doc,.docx"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx"
                   style={{ display: "none" }}
                   onChange={handleResumeUpload}
                 />
               </label>
               <p style={{ marginTop: 10, fontSize: 12, color: "#c4bce0" }}>
-                Supports PDF, DOC, DOCX
+                Supports PDF, DOC, DOCX, XLS, XLSX
               </p>
             </div>
           )}

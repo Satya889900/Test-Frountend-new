@@ -9,6 +9,9 @@
 
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import html2pdf from "html2pdf.js";
+import { createResume, updateResume, downloadResume } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 import ResumePreview from "./Resumepreview";
 import {
   TEMPLATES, CATEGORIES, FILTER_TYPES,
@@ -424,47 +427,123 @@ function ConfigCard({ title, children }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 3 — BUILDER
 // ─────────────────────────────────────────────────────────────────────────────
-function BuilderStep({ template, config, onBack, onChangeTemplate }) {
+const Field = ({ label, field, placeholder, type = "text", form, update }) => (
+  <FGroup label={label}>
+    <input
+      type={type}
+      value={form[field] || ""}
+      placeholder={placeholder}
+      onChange={(e) => update(field, e.target.value)}
+      style={inputStyle}
+    />
+  </FGroup>
+);
+
+const TextArea = ({ label, field, placeholder, form, update }) => (
+  <FGroup label={label}>
+    <textarea
+      value={form[field] || ""}
+      placeholder={placeholder}
+      onChange={(e) => update(field, e.target.value)}
+      style={{ ...inputStyle, minHeight: 64, resize: "vertical" }}
+    />
+  </FGroup>
+);
+
+const Row2 = ({ children }) => (
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>{children}</div>
+);
+
+const SectionTitle = ({ icon, text }) => (
+  <div style={{ fontSize: 11, fontWeight: 700, color: "#1f2937", marginBottom: 10, paddingBottom: 6, borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: 6 }}>
+    <div style={{ width: 20, height: 20, borderRadius: 5, background: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11 }}>{icon}</div>
+    {text}
+  </div>
+);
+
+const AddMore = ({ label, onClick }) => (
+  <button type="button" onClick={onClick} style={{ width: "100%", padding: "7px", borderRadius: 8, border: "1.5px dashed #e5e7eb", background: "#f9fafb", color: "#4f46e5", fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 4 }}>{label}</button>
+);
+
+const ArrayField = ({ label, value, placeholder, type = "text", onChange }) => (
+  <FGroup label={label}>
+    <input type={type} value={value || ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={inputStyle} />
+  </FGroup>
+);
+
+const ArrayTextArea = ({ label, value, placeholder, onChange }) => (
+  <FGroup label={label}>
+    <textarea value={value || ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={{ ...inputStyle, minHeight: 64, resize: "vertical" }} />
+  </FGroup>
+);
+
+function BuilderStep({ template, config, onBack, onChangeTemplate, user, refreshUser }) {
   const [form, setForm] = useState({ ...DEFAULT_FORM });
+  const [isCreating, setIsCreating] = useState(false);
+  const [created, setCreated] = useState(false);
+
   const update = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
-  const Field = ({ label, field, placeholder, type = "text" }) => (
-    <FGroup label={label}>
-      <input
-        type={type}
-        value={form[field] || ""}
-        placeholder={placeholder}
-        onChange={(e) => update(field, e.target.value)}
-        style={inputStyle}
-      />
-    </FGroup>
-  );
+  const updateArray = (arr, index, key, val) => {
+    setForm((f) => {
+      const copy = [...(f[arr] || [])];
+      if (copy[index]) {
+        copy[index] = { ...copy[index], [key]: val };
+      }
+      return { ...f, [arr]: copy };
+    });
+  };
 
-  const TextArea = ({ label, field, placeholder }) => (
-    <FGroup label={label}>
-      <textarea
-        value={form[field] || ""}
-        placeholder={placeholder}
-        onChange={(e) => update(field, e.target.value)}
-        style={{ ...inputStyle, minHeight: 64, resize: "vertical" }}
-      />
-    </FGroup>
-  );
+  const addArrayItem = (arr, defaults) => {
+    setForm((f) => ({ ...f, [arr]: [...(f[arr] || []), { id: Date.now().toString(), ...defaults }] }));
+  };
 
-  const Row2 = ({ children }) => (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>{children}</div>
-  );
+  const removeArrayItem = (arr, index) => {
+    setForm((f) => {
+      const copy = [...(f[arr] || [])];
+      copy.splice(index, 1);
+      return { ...f, [arr]: copy };
+    });
+  };
 
-  const SectionTitle = ({ icon, text }) => (
-    <div style={{ fontSize: 11, fontWeight: 700, color: "#1f2937", marginBottom: 10, paddingBottom: 6, borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: 6 }}>
-      <div style={{ width: 20, height: 20, borderRadius: 5, background: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11 }}>{icon}</div>
-      {text}
-    </div>
-  );
+  const handleCreate = async () => {
+    const element = document.getElementById("resume-preview-container");
+    if (!element) return;
+    setIsCreating(true);
+    try {
+      const opt = {
+        margin: 0,
+        filename: 'resume.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
 
-  const AddMore = ({ label }) => (
-    <button style={{ width: "100%", padding: "7px", borderRadius: 8, border: "1.5px dashed #e5e7eb", background: "#f9fafb", color: "#4f46e5", fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 4 }}>{label}</button>
-  );
+      const pdfBlob = await html2pdf().from(element).set(opt).output('blob');
+      const file = new File([pdfBlob], "resume.pdf", { type: "application/pdf" });
+
+      if (user?.resume) {
+        await updateResume(file);
+      } else {
+        await createResume(file);
+      }
+      if (refreshUser) await refreshUser();
+      setCreated(true);
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to create resume.");
+      console.error(err);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      await downloadResume();
+    } catch(err) {
+      alert(err.response?.data?.message || "Failed to download.");
+    }
+  };
 
   return (
     <div style={S.page}>
@@ -479,7 +558,7 @@ function BuilderStep({ template, config, onBack, onChangeTemplate }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", flex: 1, minHeight: 600 }}>
         {/* Live preview */}
         <div style={{ background: "#dde3f0", padding: 20, overflowY: "auto", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-          <div style={{ background: "#fff", width: "100%", maxWidth: 480, minHeight: 660, borderRadius: 4, boxShadow: "0 4px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}>
+          <div id="resume-preview-container" style={{ background: "#fff", width: "100%", maxWidth: 480, minHeight: 660, borderRadius: 4, boxShadow: "0 4px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}>
             <ResumePreview config={config} form={form} />
           </div>
         </div>
@@ -494,83 +573,149 @@ function BuilderStep({ template, config, onBack, onChangeTemplate }) {
             <div style={{ marginBottom: 20 }}>
               <SectionTitle icon="👤" text="Personal info" />
               <Row2>
-                <Field label="First name"  field="fname"   placeholder="John" />
-                <Field label="Last name"   field="lname"   placeholder="Doe" />
+                <Field form={form} update={update} label="First name"  field="fname"   placeholder="John" />
+                <Field form={form} update={update} label="Last name"   field="lname"   placeholder="Doe" />
               </Row2>
               <div style={{ marginBottom: 8 }}>
-                <Field label="Professional title" field="title" placeholder="e.g. Software Engineer" />
+                <Field form={form} update={update} label="Professional title" field="title" placeholder="e.g. Software Engineer" />
               </div>
               <Row2>
-                <Field label="Email"  field="email" placeholder="you@email.com" type="email" />
-                <Field label="Phone"  field="phone" placeholder="+1 234 567 890" />
+                <Field form={form} update={update} label="Email"  field="email" placeholder="you@email.com" type="email" />
+                <Field form={form} update={update} label="Phone"  field="phone" placeholder="+1 234 567 890" />
               </Row2>
-              <div style={{ marginBottom: 8 }}>
-                <Field label="LinkedIn / Website" field="linkedin" placeholder="linkedin.com/in/yourname" />
-              </div>
+              <Row2>
+                <Field form={form} update={update} label="LinkedIn" field="linkedin" placeholder="linkedin.com/in/yourname" />
+                <Field form={form} update={update} label="GitHub" field="github" placeholder="github.com/yourname" />
+              </Row2>
+              <Row2>
+                <Field form={form} update={update} label="Twitter / X" field="twitter" placeholder="x.com/yourname" />
+                <Field form={form} update={update} label="Portfolio" field="portfolio" placeholder="yourportfolio.com" />
+              </Row2>
             </div>
 
             {/* Summary */}
             <div style={{ marginBottom: 20 }}>
               <SectionTitle icon="📝" text="Professional summary" />
-              <TextArea label="Summary" field="summary" placeholder="Write 2-3 sentences about yourself..." />
+              <TextArea form={form} update={update} label="Summary" field="summary" placeholder="Write 2-3 sentences about yourself..." />
             </div>
 
             {/* Experience */}
             <div style={{ marginBottom: 20 }}>
               <SectionTitle icon="💼" text="Work experience" />
-              <Row2>
-                <Field label="Job title" field="jobtitle" placeholder="Senior Developer" />
-                <Field label="Company"   field="company"  placeholder="Acme Corp" />
-              </Row2>
-              <Row2>
-                <Field label="Start date" field="jobstart" placeholder="2021" />
-                <Field label="End date"   field="jobend"   placeholder="Present" />
-              </Row2>
-              <div style={{ marginBottom: 4 }}>
-                <TextArea label="Description" field="jobdesc" placeholder="Describe your responsibilities..." />
-              </div>
-              <AddMore label="+ Add another position" />
+              {(form.experience || []).map((exp, i) => (
+                <div key={exp.id} style={{ position: "relative", marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #e5e7eb" }}>
+                  <button type="button" onClick={() => removeArrayItem("experience", i)} style={{ position:"absolute", top:0, right:0, background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize: 16 }}>×</button>
+                  <Row2>
+                    <ArrayField value={exp.jobtitle} onChange={(val) => updateArray("experience", i, "jobtitle", val)} label="Job title" placeholder="Senior Developer" />
+                    <ArrayField value={exp.company} onChange={(val) => updateArray("experience", i, "company", val)} label="Company" placeholder="Acme Corp" />
+                  </Row2>
+                  <Row2>
+                    <ArrayField value={exp.jobstart} onChange={(val) => updateArray("experience", i, "jobstart", val)} label="Start date" placeholder="2021" />
+                    <ArrayField value={exp.jobend} onChange={(val) => updateArray("experience", i, "jobend", val)} label="End date" placeholder="Present" />
+                  </Row2>
+                  <div style={{ marginBottom: 4 }}>
+                    <ArrayTextArea value={exp.jobdesc} onChange={(val) => updateArray("experience", i, "jobdesc", val)} label="Description" placeholder="Describe your responsibilities..." />
+                  </div>
+                </div>
+              ))}
+              <AddMore label="+ Add another position" onClick={() => addArrayItem("experience", { jobtitle:"", company:"", jobstart:"", jobend:"", jobdesc:"" })} />
             </div>
 
             {/* Education */}
             <div style={{ marginBottom: 20 }}>
               <SectionTitle icon="🎓" text="Education" />
-              <Row2>
-                <Field label="Degree" field="degree" placeholder="B.S. Computer Science" />
-                <Field label="School" field="school" placeholder="University name" />
-              </Row2>
-              <Row2>
-                <Field label="Graduation year" field="gradyear" placeholder="2020" />
-                <FGroup label="GPA (optional)"><input type="text" placeholder="3.8" style={inputStyle} /></FGroup>
-              </Row2>
-              <AddMore label="+ Add education" />
+              {(form.education || []).map((edu, i) => (
+                <div key={edu.id} style={{ position: "relative", marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #e5e7eb" }}>
+                  <button type="button" onClick={() => removeArrayItem("education", i)} style={{ position:"absolute", top:0, right:0, background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize: 16 }}>×</button>
+                  <Row2>
+                    <ArrayField value={edu.degree} onChange={(val) => updateArray("education", i, "degree", val)} label="Degree" placeholder="B.S. Computer Science" />
+                    <ArrayField value={edu.school} onChange={(val) => updateArray("education", i, "school", val)} label="School" placeholder="University name" />
+                  </Row2>
+                  <Row2>
+                    <ArrayField value={edu.gradyear} onChange={(val) => updateArray("education", i, "gradyear", val)} label="Graduation year" placeholder="2020" />
+                    <ArrayField value={edu.gpa} onChange={(val) => updateArray("education", i, "gpa", val)} label="GPA (optional)" placeholder="3.8" />
+                  </Row2>
+                </div>
+              ))}
+              <AddMore label="+ Add education" onClick={() => addArrayItem("education", { degree:"", school:"", gradyear:"", gpa:"" })} />
+            </div>
+
+            {/* Projects */}
+            <div style={{ marginBottom: 20 }}>
+              <SectionTitle icon="🚀" text="Projects" />
+              {(form.projects || []).map((proj, i) => (
+                <div key={proj.id} style={{ position: "relative", marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #e5e7eb" }}>
+                  <button type="button" onClick={() => removeArrayItem("projects", i)} style={{ position:"absolute", top:0, right:0, background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize: 16 }}>×</button>
+                  <Row2>
+                    <ArrayField value={proj.name} onChange={(val) => updateArray("projects", i, "name", val)} label="Project Name" placeholder="Portfolio App" />
+                    <ArrayField value={proj.year} onChange={(val) => updateArray("projects", i, "year", val)} label="Year / Link" placeholder="2023 or github link" />
+                  </Row2>
+                  <div style={{ marginBottom: 4 }}>
+                    <ArrayTextArea value={proj.description} onChange={(val) => updateArray("projects", i, "description", val)} label="Description" placeholder="What did you build?" />
+                  </div>
+                </div>
+              ))}
+              <AddMore label="+ Add project" onClick={() => addArrayItem("projects", { name:"", year:"", description:"" })} />
+            </div>
+
+            {/* Certifications */}
+            <div style={{ marginBottom: 20 }}>
+              <SectionTitle icon="📜" text="Certifications" />
+              {(form.certifications || []).map((cert, i) => (
+                <div key={cert.id} style={{ position: "relative", marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #e5e7eb" }}>
+                  <button type="button" onClick={() => removeArrayItem("certifications", i)} style={{ position:"absolute", top:0, right:0, background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize: 16 }}>×</button>
+                  <Row2>
+                    <ArrayField value={cert.name} onChange={(val) => updateArray("certifications", i, "name", val)} label="Name" placeholder="AWS Certified" />
+                    <ArrayField value={cert.issuer} onChange={(val) => updateArray("certifications", i, "issuer", val)} label="Issuer" placeholder="Amazon" />
+                  </Row2>
+                  <ArrayField value={cert.year} onChange={(val) => updateArray("certifications", i, "year", val)} label="Year" placeholder="2022" />
+                </div>
+              ))}
+              <AddMore label="+ Add certification" onClick={() => addArrayItem("certifications", { name:"", issuer:"", year:"" })} />
             </div>
 
             {/* Skills */}
             <div style={{ marginBottom: 20 }}>
               <SectionTitle icon="⚡" text="Skills" />
-              <Field label="Skills (comma separated)" field="skills" placeholder="JavaScript, React, Python..." />
+              <Field form={form} update={update} label="Skills (comma separated)" field="skills" placeholder="JavaScript, React, Python..." />
+            </div>
+
+            {/* Interests */}
+            <div style={{ marginBottom: 20 }}>
+              <SectionTitle icon="❤️" text="Interests" />
+              <Field form={form} update={update} label="Interests (comma separated)" field="interests" placeholder="Open Source, Reading, Hiking..." />
             </div>
 
             {/* Languages */}
             <div style={{ marginBottom: 20 }}>
               <SectionTitle icon="🌐" text="Languages" />
-              <Row2>
-                <Field label="Language" field="language" placeholder="English" />
-                <FGroup label="Level">
-                  <select value={form.langLevel || "Native"} onChange={(e) => update("langLevel", e.target.value)} style={inputStyle}>
-                    {["Native", "Fluent", "Intermediate", "Basic"].map((l) => <option key={l}>{l}</option>)}
-                  </select>
-                </FGroup>
-              </Row2>
-              <AddMore label="+ Add language" />
+              {(form.languages || []).map((lang, i) => (
+                <div key={lang.id} style={{ position: "relative", marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #e5e7eb" }}>
+                  <button type="button" onClick={() => removeArrayItem("languages", i)} style={{ position:"absolute", top:0, right:0, background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize: 16 }}>×</button>
+                  <Row2>
+                    <ArrayField value={lang.language} onChange={(val) => updateArray("languages", i, "language", val)} label="Language" placeholder="English" />
+                    <FGroup label="Level">
+                      <select value={lang.langLevel || "Native"} onChange={(e) => updateArray("languages", i, "langLevel", e.target.value)} style={inputStyle}>
+                        {["Native", "Fluent", "Intermediate", "Basic"].map((l) => <option key={l}>{l}</option>)}
+                      </select>
+                    </FGroup>
+                  </Row2>
+                </div>
+              ))}
+              <AddMore label="+ Add language" onClick={() => addArrayItem("languages", { language:"", langLevel:"Native" })} />
             </div>
           </div>
 
           {/* Export bar */}
           <div style={{ padding: "14px 20px", borderTop: "1px solid #e5e7eb", display: "flex", gap: 8, background: "#fff" }}>
             <Btn variant="ghost" onClick={onBack} style={{ flex: 1 }}>Edit design</Btn>
-            <Btn variant="primary" style={{ flex: 1 }} onClick={() => window.print()}>Download PDF ↗</Btn>
+            {created ? (
+              <Btn variant="primary" style={{ flex: 1 }} onClick={handleDownload}>Download PDF ↗</Btn>
+            ) : (
+              <Btn variant="primary" style={{ flex: 1, opacity: isCreating ? 0.7 : 1 }} onClick={handleCreate} disabled={isCreating}>
+                {isCreating ? "Creating..." : "Submit & Create 🚀"}
+              </Btn>
+            )}
           </div>
         </div>
       </div>
@@ -584,7 +729,7 @@ function BuilderStep({ template, config, onBack, onChangeTemplate }) {
 export default function ResumePage() {
   const [step, setStep] = useState("gallery"); // "gallery" | "configure" | "builder"
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const user = { name: "Satya" };
+  const { user, refreshUser } = useAuth();
   const [config, setConfig] = useState({
     accent: "#4f46e5",
     font: "'Segoe UI', sans-serif",
@@ -622,6 +767,8 @@ export default function ResumePage() {
       config={config}
       onBack={() => setStep("configure")}
       onChangeTemplate={() => setStep("gallery")}
+      user={user}
+      refreshUser={refreshUser}
     />
   );
 }

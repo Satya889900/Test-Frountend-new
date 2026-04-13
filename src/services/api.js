@@ -59,7 +59,7 @@ export const updateUserProfile = (data) =>
 // ─── RESUME ───────────────────────────────────────────────────────────────────
 
 /**
- * Upload a new resume (PDF/DOC/DOCX)
+ * Upload a new resume (PDF/DOC/DOCX/XLS/XLSX)
  * @param {File} file - The file from <input type="file">
  */
 export const createResume = (file) => {
@@ -101,7 +101,30 @@ export const deleteResume = () =>
 /**
  * Get a signed download URL for the resume
  */
-export const downloadResume = () =>
-  api.get("/api/users/resume/download").then((r) => r.data);
+export const downloadResume = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${BASE_URL}/api/users/resume/download`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error("Download failed");
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  
+  let filename = "resume";
+  const contentDisposition = response.headers.get("content-disposition");
+  if (contentDisposition && contentDisposition.includes("filename=")) {
+    filename = contentDisposition.split("filename=")[1].replace(/["']/g, "");
+  }
+
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+};
 
 export default api;
