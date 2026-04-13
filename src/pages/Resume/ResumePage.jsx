@@ -1,774 +1,829 @@
 // ResumePage.jsx
-// Full 3-step resume builder:
-//   Step 1 → Gallery     (browse & pick template)
-//   Step 2 → Configure   (colour, photo, font, layout)
-//   Step 3 → Builder     (fill form, live preview, export)
-//
-// Drop this file (plus resumeData.js and ResumePreview.jsx) into your project.
-// Requires react-router-dom for useNavigate.
+// Complete 3-step resume builder: Gallery (horizontal scroll) → Configure → Builder
+// Includes all supporting files: Resumedata.js, Resumepreview.js, and API service
 
-import { useState, useMemo, useRef, useCallback } from "react";
+import React, { useState, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import html2pdf from "html2pdf.js";
 import { createResume, updateResume, downloadResume } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
-import ResumePreview from "./Resumepreview";
+import ResumePreview from "./ResumepreviewV2";
 import {
-  TEMPLATES, CATEGORIES, FILTER_TYPES,
-  COLORS, FONT_OPTIONS, DEFAULT_FORM,
+  TEMPLATES,
+  CATEGORIES,
+  FILTER_TYPES,
+  COLORS,
+  FONT_OPTIONS,
+  DEFAULT_FORM,
 } from "./Resumedata";
 
-// ─── Tiny inline styles reused across steps ───────────────────────────────────
-const S = {
-  page:   { minHeight: "100vh", background: "#f0f4ff", display: "flex", flexDirection: "column", fontFamily: "'Segoe UI', system-ui, sans-serif" },
-  nav:    { background: "#fff", borderBottom: "1px solid #e5e7eb", padding: "12px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" },
-  logo:   { fontSize: 15, fontWeight: 700, color: "#4f46e5" },
-  hero:   { background: "linear-gradient(135deg,#312e81 0%,#4f46e5 55%,#7c3aed 100%)", padding: "36px 28px 28px", textAlign: "center", color: "#fff" },
-  pill:   { background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 100, padding: "5px 14px", fontSize: 11, fontWeight: 500 },
-  toolbar:{ background: "#fff", borderBottom: "1px solid #e5e7eb", padding: "12px 28px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" },
-  gallery:{ padding: "22px 28px" },
-  catLabel:{ fontSize: 11, fontWeight: 700, color: "#4f46e5", textTransform: "uppercase", letterSpacing: "0.07em", margin: "0 0 12px" },
-  grid:   { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(175px,1fr))", gap: 14, marginBottom: 32 },
-  card:   { background: "#fff", borderRadius: 12, border: "1.5px solid #e5e7eb", cursor: "pointer", overflow: "hidden", transition: "all 0.2s", position: "relative" },
+// ========================
+// Styling System (Modern, Clean, Responsive)
+// ========================
+const colors = {
+  primary: "#2563eb",
+  primaryDark: "#1d4ed8",
+  primaryLight: "#eff6ff",
+  slate: {
+    50: "#f8fafc",
+    100: "#f1f5f9",
+    200: "#e2e8f0",
+    300: "#cbd5e1",
+    400: "#94a3b8",
+    500: "#64748b",
+    600: "#475569",
+    700: "#334155",
+    800: "#1e293b",
+    900: "#0f172a",
+  },
 };
 
-// ─── Mini document preview (thumbnail in gallery) ─────────────────────────────
-function DocMini({ accent, layout }) {
-  const a = accent;
-  const line = (w, op = 0.35) => (
-    <div style={{ height: 2, background: `rgba(255,255,255,${op})`, borderRadius: 2, width: `${w}%`, marginBottom: 2 }} />
-  );
-  const grayLine = (w) => (
-    <div style={{ height: 2, background: "#f3f4f6", borderRadius: 2, width: `${w}%`, marginBottom: 2 }} />
-  );
-  const sectionLabel = (text) => (
-    <div style={{ fontSize: 6, color: a, fontWeight: 700, marginBottom: 2 }}>{text}</div>
-  );
+// Reusable Components
+const Button = ({ children, onClick, variant = "primary", disabled = false, style = {} }) => {
+  const baseStyle = {
+    padding: "10px 20px",
+    borderRadius: "12px",
+    fontSize: "0.875rem",
+    fontWeight: "600",
+    cursor: disabled ? "not-allowed" : "pointer",
+    transition: "all 0.2s ease",
+    border: "none",
+    opacity: disabled ? 0.6 : 1,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "8px",
+  };
+  const variants = {
+    primary: { background: colors.primary, color: "#fff", boxShadow: "0 2px 4px rgba(37, 99, 235, 0.2)" },
+    secondary: { background: "#fff", color: colors.slate[700], border: `1px solid ${colors.slate[200]}`, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" },
+    outline: { background: "transparent", color: colors.primary, border: `1px solid ${colors.primary}` },
+    ghost: { background: "transparent", color: colors.slate[600] },
+  };
+  return <button onClick={onClick} disabled={disabled} style={{ ...baseStyle, ...variants[variant], ...style }}>{children}</button>;
+};
 
-  if (layout === "sidebar") return (
-    <div style={{ display: "flex", height: "100%" }}>
-      <div style={{ width: "36%", background: a, padding: "7px 5px" }}>
-        <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.3)", margin: "0 auto 5px" }} />
-        {line(80, 0.7)}{line(60, 0.4)}
-        <div style={{ marginTop: 6 }} />
-        {[70, 85, 55, 65].map((w, i) => line(w, 0.35 + i * 0.05))}
-      </div>
-      <div style={{ flex: 1, padding: "7px 5px" }}>
-        <div style={{ height: 3, background: a, borderRadius: 2, width: "50%", marginBottom: 3 }} />
-        {[90, 75, 65, 80, 55, 70].map((w, i) => grayLine(w))}
-      </div>
+const Input = ({ label, value, onChange, placeholder, type = "text", ...props }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}>
+    {label && <label style={{ fontSize: "0.75rem", fontWeight: "600", color: colors.slate[600] }}>{label}</label>}
+    <input
+      type={type}
+      value={value || ""}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      style={{
+        padding: "10px 12px",
+        border: `1px solid ${colors.slate[200]}`,
+        borderRadius: "10px",
+        fontSize: "0.875rem",
+        outline: "none",
+        transition: "all 0.15s",
+        background: "#fff",
+      }}
+      onFocus={(e) => e.target.style.borderColor = colors.primary}
+      onBlur={(e) => e.target.style.borderColor = colors.slate[200]}
+      {...props}
+    />
+  </div>
+);
+
+const TextArea = ({ label, value, onChange, placeholder }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}>
+    {label && <label style={{ fontSize: "0.75rem", fontWeight: "600", color: colors.slate[600] }}>{label}</label>}
+    <textarea
+      value={value || ""}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={3}
+      style={{
+        padding: "10px 12px",
+        border: `1px solid ${colors.slate[200]}`,
+        borderRadius: "10px",
+        fontSize: "0.875rem",
+        outline: "none",
+        resize: "vertical",
+        fontFamily: "inherit",
+      }}
+      onFocus={(e) => e.target.style.borderColor = colors.primary}
+      onBlur={(e) => e.target.style.borderColor = colors.slate[200]}
+    />
+  </div>
+);
+
+const SectionCard = ({ title, icon, children }) => (
+  <div style={{
+    background: "#fff",
+    borderRadius: "20px",
+    padding: "20px",
+    marginBottom: "24px",
+    border: `1px solid ${colors.slate[100]}`,
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.02)",
+  }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "18px", borderBottom: `2px solid ${colors.slate[100]}`, paddingBottom: "12px" }}>
+      <span style={{ fontSize: "1.25rem" }}>{icon}</span>
+      <h3 style={{ fontSize: "1rem", fontWeight: "700", color: colors.slate[800] }}>{title}</h3>
     </div>
+    {children}
+  </div>
+);
+
+// ========================
+// Enhanced Thumbnail Component
+// ========================
+const TemplateThumbnail = ({ accent, layout }) => {
+  const line = (width, opacity = 0.3) => (
+    <div style={{ height: "3px", background: `rgba(0,0,0,${opacity})`, borderRadius: "4px", width: `${width}%`, marginBottom: "4px" }} />
+  );
+  const whiteLine = (width) => (
+    <div style={{ height: "2px", background: "rgba(255,255,255,0.5)", borderRadius: "2px", width: `${width}%`, marginBottom: "3px" }} />
   );
 
-  if (layout === "top") return (
-    <div>
-      <div style={{ background: a, padding: "8px 6px" }}>
-        <div style={{ height: 5, background: "rgba(255,255,255,0.9)", borderRadius: 2, width: "50%", marginBottom: 3 }} />
-        <div style={{ height: 3, background: "rgba(255,255,255,0.5)", borderRadius: 2, width: "35%" }} />
-      </div>
-      <div style={{ padding: "6px 6px" }}>
-        {["Exp", "Edu", "Skills"].map((s) => (
-          <div key={s}>
-            {sectionLabel(s)}
-            {[90, 70, 80].map((w, i) => grayLine(w))}
-            <div style={{ marginBottom: 4 }} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  if (layout === "corporate") return (
-    <div>
-      <div style={{ background: a, padding: "8px 6px", display: "flex", alignItems: "center", gap: 4 }}>
-        <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(255,255,255,0.2)", flexShrink: 0 }} />
-        <div>
-          <div style={{ height: 4, background: "rgba(255,255,255,0.9)", borderRadius: 2, width: 55, marginBottom: 2 }} />
-          <div style={{ height: 2, background: "rgba(255,255,255,0.5)", borderRadius: 2, width: 35 }} />
+  if (layout === "sidebar") {
+    return (
+      <div style={{ display: "flex", height: "100%", background: "#fff" }}>
+        <div style={{ width: "35%", background: accent, padding: "12px 8px" }}>
+          <div style={{ width: "30px", height: "30px", background: "rgba(255,255,255,0.2)", borderRadius: "50%", margin: "0 auto 12px" }} />
+          {whiteLine(70)}{whiteLine(50)}
+          <div style={{ marginTop: "12px" }} />
+          {[60, 80, 40, 70].map((w, i) => whiteLine(w))}
+        </div>
+        <div style={{ flex: 1, padding: "12px 8px" }}>
+          <div style={{ height: "6px", background: accent, width: "50%", borderRadius: "3px", marginBottom: "8px" }} />
+          {[80, 70, 90, 60, 75].map((w, i) => line(w, 0.15))}
         </div>
       </div>
-      <div style={{ padding: "6px 6px" }}>
-        {["Exp", "Edu", "Skills"].map((s) => (
-          <div key={s}>
-            <div style={{ fontSize: 6, color: a, fontWeight: 700, borderLeft: `2px solid ${a}`, paddingLeft: 3, marginBottom: 2 }}>{s}</div>
-            {[88, 70, 80].map((w) => grayLine(w))}
-            <div style={{ marginBottom: 4 }} />
-          </div>
-        ))}
+    );
+  }
+  if (layout === "top") {
+    return (
+      <div>
+        <div style={{ background: accent, padding: "16px 12px" }}>
+          <div style={{ height: "6px", background: "#fff", width: "60%", borderRadius: "3px", marginBottom: "6px", opacity: 0.9 }} />
+          <div style={{ height: "3px", background: "#fff", width: "40%", borderRadius: "2px", opacity: 0.6 }} />
+        </div>
+        <div style={{ padding: "12px" }}>
+          {["Work", "Education", "Skills"].map(s => (
+            <div key={s} style={{ marginBottom: "12px" }}>
+              <div style={{ fontSize: "6px", fontWeight: "bold", color: accent, marginBottom: "4px" }}>{s}</div>
+              {line(90, 0.12)}{line(70, 0.12)}{line(80, 0.12)}
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  );
-
-  // minimal
+    );
+  }
+  if (layout === "corporate") {
+    return (
+      <div>
+        <div style={{ background: accent, padding: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{ width: "24px", height: "24px", background: "rgba(255,255,255,0.2)", borderRadius: "50%" }} />
+          <div><div style={{ height: "4px", background: "#fff", width: "60px", marginBottom: "3px", opacity: 0.9 }} /><div style={{ height: "2px", background: "#fff", width: "40px", opacity: 0.6 }} /></div>
+        </div>
+        <div style={{ padding: "12px" }}>
+          {["Experience", "Education", "Skills"].map(s => (
+            <div key={s} style={{ marginBottom: "12px" }}>
+              <div style={{ fontSize: "6px", fontWeight: "bold", color: accent, marginBottom: "3px", borderLeft: `2px solid ${accent}`, paddingLeft: "4px" }}>{s}</div>
+              {line(85, 0.12)}{line(65, 0.12)}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (layout === "resumeio" || layout === "resumeioClean") {
+    return (
+      <div style={{ display: "flex", height: "100%", background: "#fff" }}>
+        <div style={{ width: "28%", background: "#f8fafc", borderRight: `1px solid ${colors.slate[200]}`, padding: "10px 8px" }}>
+          <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: accent, opacity: 0.85, marginBottom: "10px" }} />
+          {line(55, 0.16)}
+          {line(70, 0.16)}
+          <div style={{ margin: "10px 0 6px", height: "1px", background: colors.slate[300] }} />
+          {[60, 45, 72, 50, 68].map((w, i) => line(w, 0.12))}
+        </div>
+        <div style={{ flex: 1, padding: "10px 8px" }}>
+          <div style={{ height: "5px", background: accent, width: "52%", borderRadius: "2px", marginBottom: "8px" }} />
+          {["PROFILE", "EXPERIENCE", "EDUCATION"].map((s) => (
+            <div key={s} style={{ marginBottom: "8px" }}>
+              <div style={{ fontSize: "6px", color: accent, fontWeight: "700", marginBottom: "3px" }}>{s}</div>
+              <div style={{ height: "1px", background: colors.slate[300], marginBottom: "4px" }} />
+              {line(90, 0.12)}{line(74, 0.12)}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (layout === "resumeioSidebar") {
+    return (
+      <div style={{ display: "flex", height: "100%", background: "#fff" }}>
+        <div style={{ width: "32%", background: accent, padding: "12px 8px" }}>
+          <div style={{ width: "28px", height: "28px", background: "rgba(255,255,255,0.22)", borderRadius: "50%", marginBottom: "10px" }} />
+          {whiteLine(70)}{whiteLine(48)}
+          <div style={{ height: "1px", background: "rgba(255,255,255,0.35)", margin: "10px 0" }} />
+          {[66, 52, 74, 58].map((w, i) => whiteLine(w))}
+        </div>
+        <div style={{ flex: 1, padding: "10px 8px" }}>
+          <div style={{ height: "5px", background: accent, width: "56%", borderRadius: "2px", marginBottom: "8px" }} />
+          {["Profile", "Employment", "Education"].map((s) => (
+            <div key={s} style={{ marginBottom: "8px" }}>
+              <div style={{ fontSize: "6px", color: accent, fontWeight: "700", marginBottom: "3px" }}>{s}</div>
+              <div style={{ height: "1px", background: colors.slate[300], marginBottom: "4px" }} />
+              {line(88, 0.12)}{line(68, 0.12)}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (layout === "resumeioDark") {
+    return (
+      <div style={{ display: "flex", height: "100%", background: "#fff" }}>
+        <div style={{ width: "35%", background: "#0f2942", padding: "12px 8px" }}>
+          <div style={{ width: "28px", height: "28px", background: "rgba(255,255,255,0.22)", borderRadius: "50%", marginBottom: "10px" }} />
+          {whiteLine(72)}{whiteLine(45)}
+          <div style={{ marginTop: "12px" }} />
+          {[70, 58, 75, 60].map((w, i) => whiteLine(w))}
+        </div>
+        <div style={{ flex: 1, padding: "10px 8px", background: "#f8fafc" }}>
+          <div style={{ height: "5px", background: "#0f2942", width: "54%", borderRadius: "2px", marginBottom: "8px" }} />
+          {[85, 78, 72, 80, 68].map((w, i) => line(w, 0.14))}
+        </div>
+      </div>
+    );
+  }
+  if (layout === "resumeioBoxed") {
+    return (
+      <div style={{ height: "100%", background: "#fff", padding: "10px" }}>
+        <div style={{ border: `1px solid ${colors.slate[400]}`, width: "68%", margin: "0 auto 10px", padding: "8px", textAlign: "center" }}>
+          <div style={{ height: "3px", width: "52%", background: accent, margin: "0 auto 4px", borderRadius: "2px" }} />
+          <div style={{ height: "2px", width: "30%", background: colors.slate[300], margin: "0 auto", borderRadius: "2px" }} />
+        </div>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <div style={{ width: "30%", background: "#f8fafc", borderRight: `1px solid ${colors.slate[200]}`, paddingRight: "6px" }}>
+            {[70, 50, 65, 55, 62].map((w, i) => line(w, 0.16))}
+          </div>
+          <div style={{ flex: 1 }}>
+            {[90, 84, 76, 72, 88, 70].map((w, i) => line(w, 0.14))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (layout === "coolBluePanel") {
+    return (
+      <div style={{ display: "flex", height: "100%", background: "#fff" }}>
+        <div style={{ width: "33%", background: "#3f6fc4" }} />
+        <div style={{ flex: 1, padding: "10px" }}>
+          <div style={{ height: "20px", background: "#253247", marginBottom: "8px" }} />
+          {["Summary", "Work", "Education"].map((s) => (
+            <div key={s} style={{ marginBottom: "8px" }}>
+              <div style={{ fontSize: "6px", color: "#253247", fontWeight: "700" }}>{s}</div>
+              <div style={{ height: "1px", background: "#cbd5e1", margin: "3px 0" }} />
+              {line(88, 0.12)}{line(68, 0.12)}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (layout === "noirTop") {
+    return (
+      <div style={{ height: "100%", background: "#fff" }}>
+        <div style={{ height: "38%", background: "#0b0b0b" }} />
+        <div style={{ padding: "10px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            <div>{line(90, 0.16)}{line(72, 0.16)}{line(84, 0.16)}</div>
+            <div>{line(88, 0.16)}{line(70, 0.16)}{line(80, 0.16)}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (layout === "purpleCurve") {
+    return (
+      <div style={{ height: "100%", background: "#fff", padding: "10px" }}>
+        <div style={{ background: "#4c2f8f", borderRadius: "0 16px 16px 0", height: "32%", marginBottom: "10px" }} />
+        <div style={{ display: "grid", gridTemplateColumns: "0.9fr 1.1fr", gap: "8px" }}>
+          <div>{line(80, 0.14)}{line(62, 0.14)}{line(70, 0.14)}</div>
+          <div>{line(92, 0.14)}{line(78, 0.14)}{line(88, 0.14)}</div>
+        </div>
+      </div>
+    );
+  }
+  if (layout === "mintGeo") {
+    return (
+      <div style={{ height: "100%", background: "#fff", padding: "10px", position: "relative" }}>
+        <div style={{ position: "absolute", left: "16px", top: "8px", width: "2px", height: "82%", background: "#22c7a0", opacity: 0.8 }} />
+        <div style={{ position: "absolute", left: "16px", top: "20px", width: "58px", height: "2px", background: "#22c7a0", transform: "rotate(36deg)", transformOrigin: "left center" }} />
+        <div style={{ paddingLeft: "22px", paddingTop: "8px" }}>
+          <div style={{ height: "5px", width: "56%", background: "#22c7a0", marginBottom: "8px" }} />
+          {line(88, 0.14)}{line(68, 0.14)}{line(82, 0.14)}
+        </div>
+      </div>
+    );
+  }
+  if (layout === "modernPopular") {
+    return (
+      <div style={{ display: "flex", height: "100%", background: "#fff" }}>
+        <div style={{ width: "34%", background: "#f1f5f9", borderRight: `1px solid ${colors.slate[300]}`, padding: "10px 6px" }}>
+          {line(70, 0.14)}{line(52, 0.14)}{line(68, 0.14)}
+        </div>
+        <div style={{ flex: 1, padding: "10px 8px" }}>
+          <div style={{ height: "4px", background: "#111827", width: "55%", marginBottom: "6px" }} />
+          {line(90, 0.12)}{line(78, 0.12)}{line(86, 0.12)}
+        </div>
+      </div>
+    );
+  }
+  if (layout === "modernCleanStrip") {
+    return (
+      <div style={{ display: "flex", height: "100%", background: "#fff" }}>
+        <div style={{ width: "28%", background: "#e5e7eb", borderRight: `1px solid ${colors.slate[300]}`, padding: "10px 6px" }}>
+          {line(68, 0.14)}{line(50, 0.14)}{line(62, 0.14)}
+        </div>
+        <div style={{ flex: 1, padding: "10px 8px" }}>
+          <div style={{ height: "4px", background: "#111827", width: "52%", marginBottom: "6px" }} />
+          {line(90, 0.12)}{line(78, 0.12)}{line(84, 0.12)}
+        </div>
+      </div>
+    );
+  }
+  if (layout === "monoSidebarClassic") {
+    return (
+      <div style={{ display: "flex", height: "100%", background: "#fff" }}>
+        <div style={{ width: "28%", background: "#e5e7eb", borderRight: `1px solid ${colors.slate[300]}`, padding: "10px 6px" }}>
+          {line(60, 0.15)}{line(48, 0.15)}{line(66, 0.15)}
+        </div>
+        <div style={{ flex: 1, padding: "10px 8px" }}>
+          <div style={{ height: "4px", background: "#6b7280", width: "54%", marginBottom: "6px" }} />
+          {line(90, 0.12)}{line(76, 0.12)}{line(84, 0.12)}
+        </div>
+      </div>
+    );
+  }
+  if (layout === "tealExecutiveSide") {
+    return (
+      <div style={{ display: "flex", height: "100%", background: "#fff" }}>
+        <div style={{ width: "33%", background: "#0b5568", padding: "10px 6px" }}>
+          <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: "rgba(255,255,255,0.8)", margin: "0 auto 8px" }} />
+          {whiteLine(70)}{whiteLine(56)}{whiteLine(64)}
+        </div>
+        <div style={{ flex: 1, padding: "10px 8px" }}>
+          <div style={{ height: "5px", background: "#1f2937", width: "62%", marginBottom: "6px" }} />
+          {line(88, 0.14)}{line(74, 0.14)}{line(82, 0.14)}
+        </div>
+      </div>
+    );
+  }
+  if (layout === "chocoProfileArt") {
+    return (
+      <div style={{ height: "100%", background: "#f7f3ec", display: "grid", gridTemplateRows: "28% 72%" }}>
+        <div style={{ background: "#3d2118" }} />
+        <div style={{ display: "flex" }}>
+          <div style={{ width: "33%", background: "#f1dcc7", padding: "8px 6px" }}>{line(62, 0.12)}{line(52, 0.12)}</div>
+          <div style={{ flex: 1, background: "#fff", padding: "8px 6px", position: "relative" }}>
+            <div style={{ position: "absolute", left: "-14px", top: "-12px", width: "30px", height: "30px", borderRadius: "50%", background: "#d1d5db", border: "2px solid #fff" }} />
+            {line(86, 0.13)}{line(72, 0.13)}{line(80, 0.13)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (layout === "tealDataGrid") {
+    return (
+      <div style={{ height: "100%", background: "#fff", display: "grid", gridTemplateRows: "30% 50% 20%" }}>
+        <div style={{ background: accent, position: "relative" }}>
+          <div style={{ position: "absolute", left: "8px", top: "8px", width: "34%", height: "4px", background: "#0f172a" }} />
+          <div style={{ position: "absolute", left: "42%", top: "8px", width: "36px", height: "36px", borderRadius: "50%", background: "#d1d5db", border: "2px solid #94a3b8" }} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+          <div style={{ background: "#4e8d83", padding: "8px 6px" }}>{whiteLine(72)}{whiteLine(58)}</div>
+          <div style={{ background: "#f8fafc", padding: "8px 6px" }}>{line(84, 0.12)}{line(68, 0.12)}</div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+          <div style={{ background: "#6ea69e" }} />
+          <div style={{ background: "#0f4b5c" }} />
+        </div>
+      </div>
+    );
+  }
+  if (layout === "noirHeroExact") {
+    return (
+      <div style={{ height: "100%", background: "#fff" }}>
+        <div style={{ height: "40%", background: "#050505" }} />
+        <div style={{ padding: "10px", display: "grid", gridTemplateColumns: "0.42fr 0.58fr", gap: "8px" }}>
+          <div>{line(84, 0.16)}{line(72, 0.16)}</div>
+          <div>{line(88, 0.16)}{line(74, 0.16)}{line(82, 0.16)}</div>
+        </div>
+      </div>
+    );
+  }
+  if (layout === "brownClassic") {
+    return (
+      <div style={{ display: "flex", height: "100%", background: "#fff" }}>
+        <div style={{ width: "36%", background: "#b96434", padding: "10px 6px" }}>
+          <div style={{ border: "2px solid rgba(255,255,255,0.8)", height: "42px", marginBottom: "8px" }} />
+          {whiteLine(70)}{whiteLine(55)}{whiteLine(66)}
+        </div>
+        <div style={{ flex: 1, background: "#f8fafc", padding: "10px 8px" }}>
+          <div style={{ height: "5px", background: "#b96434", width: "58%", marginBottom: "6px" }} />
+          {line(88, 0.14)}{line(74, 0.14)}{line(82, 0.14)}
+        </div>
+      </div>
+    );
+  }
+  // minimal layout
   return (
-    <div style={{ padding: "8px 7px" }}>
-      <div style={{ height: 5, background: "#111", borderRadius: 2, width: "50%", marginBottom: 2 }} />
-      <div style={{ height: 2, background: "#9ca3af", borderRadius: 2, width: "35%", marginBottom: 6 }} />
-      <div style={{ height: 1, background: "#e5e7eb", marginBottom: 5 }} />
-      {["Exp", "Edu", "Skills"].map((s) => (
-        <div key={s}>
-          <div style={{ fontSize: 6, color: a, fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>{s}</div>
-          {[90, 75, 65].map((w) => grayLine(w))}
-          <div style={{ marginBottom: 4 }} />
+    <div style={{ padding: "16px" }}>
+      <div style={{ height: "8px", background: accent, width: "45%", borderRadius: "4px", marginBottom: "8px" }} />
+      <div style={{ height: "4px", background: colors.slate[300], width: "60%", borderRadius: "2px", marginBottom: "16px" }} />
+      {["Experience", "Education", "Skills"].map(s => (
+        <div key={s} style={{ marginBottom: "12px" }}>
+          <div style={{ fontSize: "7px", fontWeight: "bold", color: accent, marginBottom: "3px", textTransform: "uppercase", letterSpacing: "0.5px" }}>{s}</div>
+          {line(85, 0.12)}{line(65, 0.12)}
         </div>
       ))}
     </div>
   );
-}
+};
 
-// ─── Reusable Btn ─────────────────────────────────────────────────────────────
-function Btn({ onClick, children, variant = "primary", style = {} }) {
-  const base = { padding: "8px 18px", borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "none", transition: "background 0.15s" };
-  const variants = {
-    primary: { background: "#4f46e5", color: "#fff" },
-    ghost:   { background: "#f3f4f6", color: "#1f2937" },
-    white:   { background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)" },
-  };
-  return <button onClick={onClick} style={{ ...base, ...variants[variant], ...style }}>{children}</button>;
-}
-
-// ─── Form field helpers ───────────────────────────────────────────────────────
-function FGroup({ label, children }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>{label}</label>
-      {children}
-    </div>
-  );
-}
-
-const inputStyle = { padding: "7px 9px", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 11, outline: "none", fontFamily: "inherit", color: "#111827", background: "#fff", width: "100%" };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// STEP 1 — GALLERY
-// ─────────────────────────────────────────────────────────────────────────────
-function GalleryStep({ onSelect }) {
+// ========================
+// Step 1: Horizontal Scroll Gallery
+// ========================
+const GalleryStep = ({ onSelectTemplate }) => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
 
-  const filtered = useMemo(() => {
-    return TEMPLATES.filter((t) => {
+  const filteredTemplates = useMemo(() => {
+    return TEMPLATES.filter(t => {
       const matchType = filter === "All" || t.type === filter;
-      const matchSearch = !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.type.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = !search || t.name.toLowerCase().includes(search.toLowerCase());
       return matchType && matchSearch;
     });
   }, [filter, search]);
 
-  const isSearching = search || filter !== "All";
+  const categorizedTemplates = useMemo(() => {
+    if (filter !== "All" || search) return null;
+    return Object.entries(CATEGORIES).map(([category, ids]) => ({
+      category,
+      templates: ids.map(id => TEMPLATES.find(t => t.id === id)).filter(Boolean),
+    }));
+  }, [filter, search]);
 
   return (
-    <div style={S.page}>
-      {/* Nav */}
-      <div style={S.nav}>
-        <div style={S.logo}>ResumeStudio</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Btn variant="ghost" onClick={() => navigate("/dashboard")}>Dashboard</Btn>
-          <Btn variant="primary">My Resumes</Btn>
+    <div style={{ minHeight: "100vh", background: colors.slate[50] }}>
+      {/* Navigation */}
+      <nav style={{ background: "#fff", borderBottom: `1px solid ${colors.slate[200]}`, padding: "16px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 10 }}>
+        <div style={{ fontSize: "1.5rem", fontWeight: "800", background: `linear-gradient(135deg, ${colors.primary}, #7c3aed)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>ResumeForge</div>
+        <div style={{ display: "flex", gap: "12px" }}>
+          <Button variant="secondary" onClick={() => navigate("/dashboard")}>Dashboard</Button>
+          <Button variant="primary">My Resumes</Button>
         </div>
-      </div>
+      </nav>
 
-      {/* Hero */}
-      <div style={S.hero}>
-        <h1 style={{ fontSize: 30, fontWeight: 700, marginBottom: 8 }}>Choose your resume template</h1>
-        <p style={{ fontSize: 14, opacity: 0.8, marginBottom: 18 }}>Pick a template, choose your colour, add your photo — build in minutes.</p>
-        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-          {["105+ Templates", "Custom Colours", "Photo Upload", "ATS Optimized", "PDF Export"].map((t) => (
-            <div key={t} style={S.pill}>{t}</div>
+      {/* Hero Section */}
+      <div style={{ background: `linear-gradient(135deg, ${colors.slate[800]}, ${colors.slate[900]})`, color: "#fff", padding: "56px 32px", textAlign: "center" }}>
+        <h1 style={{ fontSize: "2.5rem", fontWeight: "800", marginBottom: "16px", letterSpacing: "-0.02em" }}>Build Your Professional Resume</h1>
+        <p style={{ fontSize: "1rem", opacity: 0.85, maxWidth: "600px", margin: "0 auto 32px" }}>Choose from beautifully crafted templates, customize colors and fonts, and export to PDF in minutes.</p>
+        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+          {["50+ Templates", "Custom Colors", "ATS Friendly", "Live Preview", "PDF Export"].map(tag => (
+            <span key={tag} style={{ background: "rgba(255,255,255,0.1)", backdropFilter: "blur(4px)", padding: "6px 16px", borderRadius: "100px", fontSize: "0.75rem", fontWeight: "500" }}>{tag}</span>
           ))}
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div style={S.toolbar}>
-        <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
-          <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 14, opacity: 0.4 }}>🔍</span>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search templates..."
-            style={{ ...inputStyle, paddingLeft: 34, borderRadius: 10 }}
-          />
+      {/* Filter Bar */}
+      <div style={{ padding: "20px 32px", background: "#fff", borderBottom: `1px solid ${colors.slate[200]}`, display: "flex", gap: "20px", alignItems: "center", flexWrap: "wrap", position: "sticky", top: "72px", zIndex: 5 }}>
+        <div style={{ flex: 1, minWidth: "240px" }}>
+          <Input placeholder="Search templates..." value={search} onChange={setSearch} />
         </div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {FILTER_TYPES.map((t) => (
-            <button
-              key={t}
-              onClick={() => setFilter(t)}
-              style={{
-                padding: "6px 14px", borderRadius: 100, fontSize: 11, fontWeight: 600, cursor: "pointer",
-                border: "1px solid",
-                borderColor: filter === t ? "#4f46e5" : "#e5e7eb",
-                background: filter === t ? "#4f46e5" : "#fff",
-                color: filter === t ? "#fff" : "#4b5563",
-                transition: "all 0.15s",
-              }}
-            >{t}</button>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          {FILTER_TYPES.map(type => (
+            <button key={type} onClick={() => setFilter(type)} style={{
+              padding: "8px 20px", borderRadius: "40px", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer", transition: "all 0.2s",
+              background: filter === type ? colors.primary : "#fff", color: filter === type ? "#fff" : colors.slate[600],
+              border: `1px solid ${filter === type ? colors.primary : colors.slate[200]}`,
+            }}>{type}</button>
           ))}
         </div>
       </div>
 
-      {/* Gallery */}
-      <div style={S.gallery}>
-        {isSearching ? (
-          <>
-            <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 14 }}>{filtered.length} templates found</div>
-            <div style={S.grid}>
-              {filtered.map((t) => <TemplateCard key={t.id} template={t} onSelect={onSelect} />)}
-            </div>
-          </>
-        ) : (
-          Object.entries(CATEGORIES).map(([cat, ids]) => {
-            const ts = ids.map((id) => TEMPLATES.find((t) => t.id === id)).filter(Boolean);
-            return (
-              <div key={cat}>
-                <div style={S.catLabel}>{cat}</div>
-                <div style={S.grid}>
-                  {ts.map((t) => <TemplateCard key={t.id} template={t} onSelect={onSelect} />)}
-                </div>
+      {/* Gallery - Horizontal Scroll */}
+      <div style={{ padding: "32px" }}>
+        {filteredTemplates.length === 0 && (
+          <div style={{ textAlign: "center", padding: "60px", color: colors.slate[500] }}>No templates found. Try adjusting your search.</div>
+        )}
+        
+        {categorizedTemplates ? (
+          categorizedTemplates.map(({ category, templates }) => (
+            <div key={category} style={{ marginBottom: "48px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+                <div style={{ width: "40px", height: "3px", background: colors.primary, borderRadius: "2px" }} />
+                <h2 style={{ fontSize: "1.25rem", fontWeight: "700", color: colors.slate[800] }}>{category}</h2>
               </div>
-            );
-          })
+              <div style={{ display: "flex", overflowX: "auto", gap: "24px", paddingBottom: "16px", scrollbarWidth: "thin" }}>
+                {templates.map(template => (
+                  <TemplateCard key={template.id} template={template} onSelect={onSelectTemplate} />
+                ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "center" }}>
+            {filteredTemplates.map(template => (
+              <TemplateCard key={template.id} template={template} onSelect={onSelectTemplate} />
+            ))}
+          </div>
         )}
       </div>
     </div>
   );
-}
+};
 
-function TemplateCard({ template: t, onSelect }) {
+const TemplateCard = ({ template, onSelect }) => {
   const [hovered, setHovered] = useState(false);
   return (
-    <div
-      style={{
-        ...S.card,
-        borderColor: hovered ? "#4f46e5" : "#e5e7eb",
-        transform: hovered ? "translateY(-3px)" : "none",
-        boxShadow: hovered ? "0 8px 24px rgba(79,70,229,0.13)" : "none",
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={() => onSelect(t)}
-    >
-      {/* Badge */}
-      {t.badge === "popular" && (
-        <div style={{ position: "absolute", top: 6, right: 6, background: "#fef3c7", color: "#92400e", fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 100 }}>Popular</div>
-      )}
-      {t.badge === "new" && (
-        <div style={{ position: "absolute", top: 6, right: 6, background: "#d1fae5", color: "#065f46", fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 100 }}>New</div>
-      )}
-
-      {/* Preview */}
-      <div style={{ height: 200, overflow: "hidden", padding: 8, background: "#f9fafb" }}>
-        <div style={{ width: "100%", height: "100%", background: "#fff", borderRadius: 5, border: "1px solid #e5e7eb", overflow: "hidden" }}>
-          <DocMini accent={t.accent} layout={t.layout} />
+    <div style={{
+      width: "260px", flexShrink: 0, background: "#fff", borderRadius: "20px", overflow: "hidden", cursor: "pointer",
+      transition: "all 0.25s ease", border: `1px solid ${hovered ? colors.primary : colors.slate[200]}`,
+      transform: hovered ? "translateY(-4px)" : "none", boxShadow: hovered ? "0 20px 25px -12px rgba(0,0,0,0.1)" : "none",
+    }} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onClick={() => onSelect(template)}>
+      <div style={{ height: "200px", background: colors.slate[100], padding: "12px" }}>
+        <div style={{ background: "#fff", borderRadius: "12px", overflow: "hidden", height: "100%", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+          <TemplateThumbnail accent={template.accent} layout={template.layout} />
         </div>
       </div>
-
-      {/* Footer */}
-      <div style={{ padding: "9px 10px 10px" }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", marginBottom: 1 }}>{t.name}</div>
-        <div style={{ fontSize: 10, color: "#9ca3af", marginBottom: 7 }}>{t.type}</div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onSelect(t); }}
-          style={{ width: "100%", padding: "6px", borderRadius: 7, background: "#4f46e5", color: "#fff", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer" }}
-        >Customise &amp; Use</button>
+      <div style={{ padding: "16px" }}>
+        <div style={{ fontWeight: "700", color: colors.slate[800], marginBottom: "4px" }}>{template.name}</div>
+        <div style={{ fontSize: "0.7rem", color: colors.slate[500], marginBottom: "12px" }}>{template.type}</div>
+        <Button variant="primary" style={{ width: "100%", justifyContent: "center" }}>Choose Template</Button>
       </div>
     </div>
   );
-}
+};
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STEP 2 — CONFIGURE
-// ─────────────────────────────────────────────────────────────────────────────
-function ConfigureStep({ template, config, setConfig, onBack, onNext }) {
+// ========================
+// Step 2: Configuration Panel
+// ========================
+const ConfigureStep = ({ template, config, setConfig, onBack, onNext }) => {
   const photoInputRef = useRef(null);
+  const updateConfig = (key, value) => setConfig(prev => ({ ...prev, [key]: value }));
 
-  const update = useCallback((key, val) => setConfig((c) => ({ ...c, [key]: val })), [setConfig]);
-
-  const handlePhoto = (e) => {
+  const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => update("photo", ev.target.result);
+    reader.onload = (ev) => updateConfig("photo", ev.target.result);
     reader.readAsDataURL(file);
   };
 
-  const removePhoto = () => update("photo", null);
-
   return (
-    <div style={S.page}>
-      {/* Header */}
-      <div style={{ background: "linear-gradient(135deg,#312e81,#4f46e5)", padding: "14px 28px", display: "flex", alignItems: "center", gap: 14 }}>
-        <Btn variant="white" onClick={onBack}>← Templates</Btn>
-        <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>{template.name}</div>
-        <div style={{ marginLeft: "auto", background: "rgba(255,255,255,0.2)", color: "#fff", fontSize: 11, padding: "3px 12px", borderRadius: 100 }}>{template.type}</div>
+    <div style={{ minHeight: "100vh", background: colors.slate[50], display: "flex", flexDirection: "column" }}>
+      <div style={{ background: "#fff", borderBottom: `1px solid ${colors.slate[200]}`, padding: "16px 32px", display: "flex", alignItems: "center", gap: "24px", position: "sticky", top: 0, zIndex: 10 }}>
+        <Button variant="secondary" onClick={onBack}>← Back to Templates</Button>
+        <div style={{ fontWeight: "700", fontSize: "1.1rem", color: colors.slate[800] }}>{template.name}</div>
+        <div style={{ marginLeft: "auto", background: colors.slate[100], padding: "4px 12px", borderRadius: "100px", fontSize: "0.7rem", fontWeight: "500", color: colors.slate[600] }}>{template.type}</div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", flex: 1, minHeight: 600 }}>
-        {/* Left — options */}
-        <div style={{ background: "#e8ecf5", padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
-
-          {/* Colour */}
-          <ConfigCard title="🎨 Choose accent colour">
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
-              {COLORS.map((c) => (
-                <div
-                  key={c}
-                  onClick={() => update("accent", c)}
-                  style={{
-                    width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer",
-                    border: `2.5px solid ${config.accent === c ? "#fff" : "transparent"}`,
-                    boxShadow: config.accent === c ? `0 0 0 2.5px #4f46e5` : "none",
-                    transition: "all 0.15s",
-                  }}
-                />
+      <div style={{ display: "flex", flex: 1, gap: "0", minHeight: "calc(100vh - 72px)" }}>
+        {/* Left Panel - Configuration */}
+        <div style={{ width: "400px", background: "#fff", borderRight: `1px solid ${colors.slate[200]}`, padding: "24px", overflowY: "auto" }}>
+          <SectionCard title="Accent Color" icon="🎨">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "20px" }}>
+              {COLORS.map(color => (
+                <div key={color} onClick={() => updateConfig("accent", color)} style={{
+                  width: "36px", height: "36px", borderRadius: "50%", background: color, cursor: "pointer",
+                  border: config.accent === color ? `3px solid ${colors.primary}` : "2px solid transparent",
+                  boxShadow: config.accent === color ? `0 0 0 2px #fff, 0 0 0 4px ${colors.primary}` : "none",
+                  transition: "all 0.2s",
+                }} />
               ))}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <label style={{ fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Custom:</label>
-              <input type="color" value={config.accent} onChange={(e) => update("accent", e.target.value)}
-                style={{ width: 36, height: 28, border: "1px solid #e5e7eb", borderRadius: 6, cursor: "pointer", padding: 2 }} />
-              <span style={{ fontSize: 11, color: "#6b7280" }}>{config.accent}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <span style={{ fontSize: "0.75rem", fontWeight: "600" }}>Custom:</span>
+              <input type="color" value={config.accent} onChange={(e) => updateConfig("accent", e.target.value)} style={{ width: "48px", height: "40px", borderRadius: "8px", border: `1px solid ${colors.slate[200]}`, cursor: "pointer" }} />
+              <span style={{ fontSize: "0.7rem", fontFamily: "monospace" }}>{config.accent}</span>
             </div>
-          </ConfigCard>
+          </SectionCard>
 
-          {/* Photo */}
-          <ConfigCard title="📷 Profile photo (optional)">
-            <input type="file" accept="image/*" ref={photoInputRef} onChange={handlePhoto} style={{ display: "none" }} />
+          <SectionCard title="Profile Photo" icon="📸">
+            <input type="file" accept="image/*" ref={photoInputRef} onChange={handlePhotoUpload} style={{ display: "none" }} />
             {config.photo ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <img src={config.photo} alt="profile"
-                  style={{ width: 60, height: 60, borderRadius: config.circlePhoto ? "50%" : 8, objectFit: "cover", border: "2px solid #4f46e5" }} />
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <Btn variant="ghost" style={{ fontSize: 11 }} onClick={() => photoInputRef.current.click()}>Change photo</Btn>
-                  <Btn variant="ghost" style={{ fontSize: 11, color: "#dc2626" }} onClick={removePhoto}>Remove</Btn>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+                <img src={config.photo} alt="Profile" style={{ width: "64px", height: "64px", borderRadius: config.circlePhoto ? "50%" : "12px", objectFit: "cover", border: `2px solid ${colors.primary}` }} />
+                <div>
+                  <Button variant="secondary" onClick={() => photoInputRef.current.click()} style={{ marginRight: "8px" }}>Change</Button>
+                  <Button variant="secondary" onClick={() => updateConfig("photo", null)}>Remove</Button>
                 </div>
               </div>
             ) : (
-              <div
-                onClick={() => photoInputRef.current.click()}
-                style={{ border: "2px dashed #d1d5db", borderRadius: 10, padding: 16, textAlign: "center", cursor: "pointer" }}
-              >
-                <div style={{ fontSize: 28, marginBottom: 6 }}>📷</div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#4b5563" }}>Click to upload photo</div>
-                <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>JPG, PNG — appears on your resume</div>
+              <div onClick={() => photoInputRef.current.click()} style={{ border: `2px dashed ${colors.slate[300]}`, borderRadius: "16px", padding: "24px", textAlign: "center", cursor: "pointer", transition: "0.2s", background: colors.slate[50] }}>
+                <div style={{ fontSize: "2rem", marginBottom: "8px" }}>📷</div>
+                <div style={{ fontWeight: "600", fontSize: "0.8rem" }}>Click to upload</div>
+                <div style={{ fontSize: "0.7rem", color: colors.slate[500] }}>JPG, PNG (max 2MB)</div>
               </div>
             )}
-            <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#4b5563", cursor: "pointer" }}>
-                <input type="checkbox" checked={config.circlePhoto} onChange={(e) => update("circlePhoto", e.target.checked)} /> Circular crop
+            <div style={{ display: "flex", gap: "20px", marginTop: "16px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.75rem", cursor: "pointer" }}>
+                <input type="checkbox" checked={config.circlePhoto} onChange={(e) => updateConfig("circlePhoto", e.target.checked)} /> Circle crop
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#4b5563", cursor: "pointer" }}>
-                <input type="checkbox" checked={config.showPhoto} onChange={(e) => update("showPhoto", e.target.checked)} /> Show on resume
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.75rem", cursor: "pointer" }}>
+                <input type="checkbox" checked={config.showPhoto} onChange={(e) => updateConfig("showPhoto", e.target.checked)} /> Show photo
               </label>
             </div>
-          </ConfigCard>
+          </SectionCard>
 
-          {/* Font */}
-          <ConfigCard title="✏️ Font style">
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {FONT_OPTIONS.map((fo) => (
-                <button key={fo.value} onClick={() => update("font", fo.value)}
-                  style={{
-                    padding: "6px 12px", borderRadius: 8, border: "1px solid", cursor: "pointer", fontSize: 11,
-                    fontFamily: fo.value,
-                    borderColor: config.font === fo.value ? "#4f46e5" : "#e5e7eb",
-                    background: config.font === fo.value ? "#4f46e5" : "#fff",
-                    color: config.font === fo.value ? "#fff" : "#374151",
-                  }}>{fo.label}</button>
+          <SectionCard title="Typography" icon="✏️">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {FONT_OPTIONS.map(font => (
+                <button key={font.value} onClick={() => updateConfig("font", font.value)} style={{
+                  padding: "8px 16px", borderRadius: "40px", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer", transition: "all 0.2s",
+                  background: config.font === font.value ? colors.primary : "#fff", color: config.font === font.value ? "#fff" : colors.slate[700],
+                  border: `1px solid ${config.font === font.value ? colors.primary : colors.slate[200]}`,
+                  fontFamily: font.value,
+                }}>{font.label}</button>
               ))}
             </div>
-          </ConfigCard>
+          </SectionCard>
 
-          {/* Layout */}
-          <ConfigCard title="📐 Layout variant">
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {["sidebar", "top", "minimal", "corporate"].map((l) => (
-                <button key={l} onClick={() => update("layout", l)}
-                  style={{
-                    padding: "6px 14px", borderRadius: 8, border: "1px solid", cursor: "pointer", fontSize: 11, fontWeight: 500,
-                    borderColor: config.layout === l ? "#4f46e5" : "#e5e7eb",
-                    background: config.layout === l ? "#4f46e5" : "#fff",
-                    color: config.layout === l ? "#fff" : "#374151",
-                    textTransform: "capitalize",
-                  }}>{l === "top" ? "Top header" : l.charAt(0).toUpperCase() + l.slice(1)}</button>
+          <SectionCard title="Layout Style" icon="📐">
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              {["sidebar", "top", "minimal", "corporate", "resumeio", "resumeioSidebar", "resumeioDark", "resumeioBoxed", "resumeioClean", "coolBluePanel", "noirTop", "purpleCurve", "mintGeo", "modernPopular", "modernCleanStrip", "monoSidebarClassic", "tealExecutiveSide", "chocoProfileArt", "tealDataGrid", "noirHeroExact", "brownClassic"].map(layout => (
+                <button key={layout} onClick={() => updateConfig("layout", layout)} style={{
+                  padding: "8px 18px", borderRadius: "40px", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer", textTransform: "capitalize",
+                  background: config.layout === layout ? colors.primary : "#fff", color: config.layout === layout ? "#fff" : colors.slate[700],
+                  border: `1px solid ${config.layout === layout ? colors.primary : colors.slate[200]}`,
+                }}>{layout === "top" ? "Top Header" : layout === "resumeio" ? "Classic Split" : layout === "resumeioSidebar" ? "Ocean Sidebar" : layout === "resumeioDark" ? "Navy Panel" : layout === "resumeioBoxed" ? "Boxed Header" : layout === "resumeioClean" ? "Clean Split" : layout === "coolBluePanel" ? "Blue Panel" : layout === "noirTop" ? "Noir Hero" : layout === "purpleCurve" ? "Purple Curve" : layout === "mintGeo" ? "Mint Geometry" : layout === "modernPopular" ? "Modern Popular" : layout === "modernCleanStrip" ? "Modern Clean Strip" : layout === "monoSidebarClassic" ? "Mono Sidebar Classic" : layout === "tealExecutiveSide" ? "Teal Executive Side" : layout === "chocoProfileArt" ? "Choco Profile Art" : layout === "tealDataGrid" ? "Teal Data Grid" : layout === "noirHeroExact" ? "Noir Hero Exact" : layout === "brownClassic" ? "Brown Classic" : layout}</button>
               ))}
             </div>
-          </ConfigCard>
-
+          </SectionCard>
         </div>
 
-        {/* Right — preview */}
-        <div style={{ background: "#fff", borderLeft: "1px solid #e5e7eb", display: "flex", flexDirection: "column" }}>
-          <div style={{ flex: 1, background: "#dde3f0", padding: 16, overflowY: "auto", display: "flex", justifyContent: "center" }}>
-            <div style={{ background: "#fff", width: "100%", maxWidth: 400, minHeight: 560, borderRadius: 4, boxShadow: "0 4px 20px rgba(0,0,0,0.1)", overflow: "hidden" }}>
-              <ResumePreview config={config} form={DEFAULT_FORM} />
-            </div>
+        {/* Right Panel - Live Preview */}
+        <div style={{ flex: 1, background: colors.slate[100], display: "flex", flexDirection: "column", padding: "32px", overflowY: "auto" }}>
+          <div style={{ background: "#fff", borderRadius: "24px", boxShadow: "0 20px 35px -12px rgba(0,0,0,0.1)", maxWidth: "500px", margin: "0 auto", overflow: "hidden" }}>
+            <ResumePreview config={config} form={DEFAULT_FORM} />
           </div>
-          <div style={{ padding: "14px 16px", borderTop: "1px solid #e5e7eb", display: "flex", gap: 8 }}>
-            <Btn variant="ghost" onClick={onBack} style={{ flex: 1 }}>← Back</Btn>
-            <Btn variant="primary" onClick={onNext} style={{ flex: 1 }}>Use this design →</Btn>
+          <div style={{ marginTop: "auto", paddingTop: "32px", display: "flex", gap: "16px", justifyContent: "center" }}>
+            <Button variant="secondary" onClick={onBack}>← Back</Button>
+            <Button variant="primary" onClick={onNext}>Continue to Details →</Button>
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
 
-function ConfigCard({ title, children }) {
-  return (
-    <div style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #e5e7eb" }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "#1f2937", marginBottom: 12 }}>{title}</div>
-      {children}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// STEP 3 — BUILDER
-// ─────────────────────────────────────────────────────────────────────────────
-const Field = ({ label, field, placeholder, type = "text", form, update }) => (
-  <FGroup label={label}>
-    <input
-      type={type}
-      value={form[field] || ""}
-      placeholder={placeholder}
-      onChange={(e) => update(field, e.target.value)}
-      style={inputStyle}
-    />
-  </FGroup>
-);
-
-const TextArea = ({ label, field, placeholder, form, update }) => (
-  <FGroup label={label}>
-    <textarea
-      value={form[field] || ""}
-      placeholder={placeholder}
-      onChange={(e) => update(field, e.target.value)}
-      style={{ ...inputStyle, minHeight: 64, resize: "vertical" }}
-    />
-  </FGroup>
-);
-
-const Row2 = ({ children }) => (
-  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>{children}</div>
-);
-
-const SectionTitle = ({ icon, text }) => (
-  <div style={{ fontSize: 11, fontWeight: 700, color: "#1f2937", marginBottom: 10, paddingBottom: 6, borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: 6 }}>
-    <div style={{ width: 20, height: 20, borderRadius: 5, background: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11 }}>{icon}</div>
-    {text}
-  </div>
-);
-
-const AddMore = ({ label, onClick }) => (
-  <button type="button" onClick={onClick} style={{ width: "100%", padding: "7px", borderRadius: 8, border: "1.5px dashed #e5e7eb", background: "#f9fafb", color: "#4f46e5", fontSize: 11, fontWeight: 600, cursor: "pointer", marginTop: 4 }}>{label}</button>
-);
-
-const ArrayField = ({ label, value, placeholder, type = "text", onChange }) => (
-  <FGroup label={label}>
-    <input type={type} value={value || ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={inputStyle} />
-  </FGroup>
-);
-
-const ArrayTextArea = ({ label, value, placeholder, onChange }) => (
-  <FGroup label={label}>
-    <textarea value={value || ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={{ ...inputStyle, minHeight: 64, resize: "vertical" }} />
-  </FGroup>
-);
-
-function BuilderStep({ template, config, onBack, onChangeTemplate, user, refreshUser }) {
+// ========================
+// Step 3: Form Builder with Live Preview
+// ========================
+const BuilderStep = ({ template, config, onBack, onChangeTemplate, user, refreshUser }) => {
   const [form, setForm] = useState({ ...DEFAULT_FORM });
   const [isCreating, setIsCreating] = useState(false);
-  const [created, setCreated] = useState(false);
+  const [resumeCreated, setResumeCreated] = useState(false);
+  const previewRef = useRef();
 
-  const update = (key, val) => setForm((f) => ({ ...f, [key]: val }));
+  const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
-  const updateArray = (arr, index, key, val) => {
-    setForm((f) => {
-      const copy = [...(f[arr] || [])];
-      if (copy[index]) {
-        copy[index] = { ...copy[index], [key]: val };
-      }
-      return { ...f, [arr]: copy };
+  const updateArrayItem = (arrayName, index, key, value) => {
+    setForm(prev => {
+      const newArray = [...(prev[arrayName] || [])];
+      if (newArray[index]) newArray[index] = { ...newArray[index], [key]: value };
+      return { ...prev, [arrayName]: newArray };
     });
   };
 
-  const addArrayItem = (arr, defaults) => {
-    setForm((f) => ({ ...f, [arr]: [...(f[arr] || []), { id: Date.now().toString(), ...defaults }] }));
+  const addArrayItem = (arrayName, defaults) => {
+    setForm(prev => ({ ...prev, [arrayName]: [...(prev[arrayName] || []), { id: Date.now().toString(), ...defaults }] }));
   };
 
-  const removeArrayItem = (arr, index) => {
-    setForm((f) => {
-      const copy = [...(f[arr] || [])];
-      copy.splice(index, 1);
-      return { ...f, [arr]: copy };
+  const removeArrayItem = (arrayName, index) => {
+    setForm(prev => {
+      const newArray = [...(prev[arrayName] || [])];
+      newArray.splice(index, 1);
+      return { ...prev, [arrayName]: newArray };
     });
   };
 
-  const handleCreate = async () => {
-    const element = document.getElementById("resume-preview-container");
-    if (!element) return;
+  const handleCreateResume = async () => {
+    if (!previewRef.current) return;
     setIsCreating(true);
     try {
-      const opt = {
-        margin: 0,
-        filename: 'resume.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-      };
-
+      const element = previewRef.current;
+      const opt = { margin: 0, filename: 'resume.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
       const pdfBlob = await html2pdf().from(element).set(opt).output('blob');
       const file = new File([pdfBlob], "resume.pdf", { type: "application/pdf" });
-
-      if (user?.resume) {
-        await updateResume(file);
-      } else {
-        await createResume(file);
-      }
+      if (user?.resume) await updateResume(file);
+      else await createResume(file);
       if (refreshUser) await refreshUser();
-      setCreated(true);
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to create resume.");
-      console.error(err);
-    } finally {
-      setIsCreating(false);
-    }
+      setResumeCreated(true);
+    } catch (err) { alert(err.response?.data?.message || "Failed to create resume."); }
+    finally { setIsCreating(false); }
   };
 
-  const handleDownload = async () => {
-    try {
-      await downloadResume();
-    } catch(err) {
-      alert(err.response?.data?.message || "Failed to download.");
-    }
-  };
+  const handleDownload = async () => { try { await downloadResume(); } catch (err) { alert("Download failed."); } };
+
+  // Reusable form sections
+  const renderArrayFields = (title, icon, arrayName, fields, labels, hasDescription = false) => (
+    <SectionCard title={title} icon={icon}>
+      {(form[arrayName] || []).map((item, idx) => (
+        <div key={item.id} style={{ position: "relative", marginBottom: "20px", paddingBottom: "16px", borderBottom: `1px solid ${colors.slate[100]}` }}>
+          <button onClick={() => removeArrayItem(arrayName, idx)} style={{ position: "absolute", top: 0, right: 0, background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: "#ef4444" }}>×</button>
+          <div style={{ display: "grid", gridTemplateColumns: fields.length === 2 ? "1fr 1fr" : "1fr", gap: "12px" }}>
+            {fields.map((field, i) => (
+              <Input key={field} label={labels[i]} value={item[field]} onChange={(val) => updateArrayItem(arrayName, idx, field, val)} />
+            ))}
+          </div>
+          {hasDescription && arrayName === "experience" && (
+            <TextArea label="Description" value={item.jobdesc} onChange={(val) => updateArrayItem(arrayName, idx, "jobdesc", val)} placeholder="Describe your responsibilities and achievements..." />
+          )}
+          {hasDescription && arrayName === "projects" && (
+            <TextArea label="Description" value={item.description} onChange={(val) => updateArrayItem(arrayName, idx, "description", val)} placeholder="Describe the project, technologies used, and your role..." />
+          )}
+        </div>
+      ))}
+      <Button variant="secondary" onClick={() => addArrayItem(arrayName, Object.fromEntries(fields.map(f => [f, ""])))} style={{ width: "100%", justifyContent: "center" }}>+ Add {title}</Button>
+    </SectionCard>
+  );
 
   return (
-    <div style={S.page}>
-      {/* Header */}
-      <div style={{ background: "linear-gradient(135deg,#312e81,#4f46e5)", padding: "14px 28px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <Btn variant="white" onClick={onBack}>← Reconfigure</Btn>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{template.name}</div>
-        <div style={{ background: "rgba(255,255,255,0.2)", color: "#fff", fontSize: 11, padding: "3px 12px", borderRadius: 100 }}>{template.type}</div>
-        <Btn variant="white" style={{ marginLeft: "auto", fontSize: 11 }} onClick={onChangeTemplate}>Change template</Btn>
+    <div style={{ minHeight: "100vh", background: colors.slate[50], display: "flex", flexDirection: "column" }}>
+      <div style={{ background: "#fff", borderBottom: `1px solid ${colors.slate[200]}`, padding: "16px 32px", display: "flex", alignItems: "center", gap: "24px", position: "sticky", top: 0, zIndex: 10 }}>
+        <Button variant="secondary" onClick={onBack}>← Edit Design</Button>
+        <div style={{ fontWeight: "700", color: colors.slate[800] }}>{template.name}</div>
+        <Button variant="ghost" onClick={onChangeTemplate} style={{ marginLeft: "auto" }}>Change Template</Button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", flex: 1, minHeight: 600 }}>
-        {/* Live preview */}
-        <div style={{ background: "#dde3f0", padding: 20, overflowY: "auto", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-          <div id="resume-preview-container" style={{ background: "#fff", width: "100%", maxWidth: 480, minHeight: 660, borderRadius: 4, boxShadow: "0 4px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}>
-            <ResumePreview config={config} form={form} />
-          </div>
+      <div style={{ display: "flex", flex: 1, minHeight: "calc(100vh - 72px)" }}>
+        {/* Left: Form */}
+        <div style={{ width: "480px", background: "#fff", borderRight: `1px solid ${colors.slate[200]}`, overflowY: "auto", padding: "24px" }}>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: "700", marginBottom: "4px" }}>Your Information</h2>
+          <p style={{ fontSize: "0.75rem", color: colors.slate[500], marginBottom: "24px" }}>Fill in the details below — preview updates instantly</p>
+
+          <SectionCard title="Personal Info" icon="👤">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <Input label="First Name" value={form.fname} onChange={v => updateField("fname", v)} />
+              <Input label="Last Name" value={form.lname} onChange={v => updateField("lname", v)} />
+            </div>
+            <Input label="Professional Title" value={form.title} onChange={v => updateField("title", v)} placeholder="e.g., Senior Product Designer" />
+            <Input label="Email" value={form.email} onChange={v => updateField("email", v)} type="email" />
+            <Input label="Phone" value={form.phone} onChange={v => updateField("phone", v)} />
+            <Input label="LinkedIn" value={form.linkedin} onChange={v => updateField("linkedin", v)} placeholder="linkedin.com/in/username" />
+            <Input label="GitHub" value={form.github} onChange={v => updateField("github", v)} placeholder="github.com/username" />
+            <Input label="Twitter/X" value={form.twitter} onChange={v => updateField("twitter", v)} placeholder="x.com/username" />
+            <Input label="Portfolio" value={form.portfolio} onChange={v => updateField("portfolio", v)} placeholder="yourportfolio.com" />
+          </SectionCard>
+
+          <SectionCard title="Professional Summary" icon="📝">
+            <TextArea value={form.summary} onChange={v => updateField("summary", v)} placeholder="Write 2-3 sentences about your experience, skills, and career goals..." />
+          </SectionCard>
+
+          {renderArrayFields("Work Experience", "💼", "experience", ["jobtitle", "company", "jobstart", "jobend"], ["Job Title", "Company", "Start Date", "End Date"], true)}
+          {renderArrayFields("Education", "🎓", "education", ["degree", "school", "gradyear", "gpa"], ["Degree", "School", "Year", "GPA"], false)}
+          {renderArrayFields("Projects", "🚀", "projects", ["name", "year"], ["Project Name", "Year/Link"], true)}
+          {renderArrayFields("Certifications", "📜", "certifications", ["name", "issuer", "year"], ["Name", "Issuer", "Year"], false)}
+          {renderArrayFields("Languages", "🌐", "languages", ["language", "langLevel"], ["Language", "Level"], false)}
+
+          <SectionCard title="Skills & Interests" icon="⚡">
+            <Input label="Skills (comma separated)" value={form.skills} onChange={v => updateField("skills", v)} placeholder="React, Node.js, Figma, Python, ..." />
+            <Input label="Interests (comma separated)" value={form.interests} onChange={v => updateField("interests", v)} placeholder="Open source, Reading, Chess, Photography" />
+          </SectionCard>
         </div>
 
-        {/* Form pane */}
-        <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-          <div style={{ flex: 1, background: "#fff", padding: 20, overflowY: "auto" }}>
-            <h2 style={{ fontSize: 14, fontWeight: 700, color: "#111827", marginBottom: 2 }}>Fill your details</h2>
-            <p style={{ fontSize: 11, color: "#9ca3af", marginBottom: 18 }}>Preview updates as you type</p>
-
-            {/* Personal */}
-            <div style={{ marginBottom: 20 }}>
-              <SectionTitle icon="👤" text="Personal info" />
-              <Row2>
-                <Field form={form} update={update} label="First name"  field="fname"   placeholder="John" />
-                <Field form={form} update={update} label="Last name"   field="lname"   placeholder="Doe" />
-              </Row2>
-              <div style={{ marginBottom: 8 }}>
-                <Field form={form} update={update} label="Professional title" field="title" placeholder="e.g. Software Engineer" />
-              </div>
-              <Row2>
-                <Field form={form} update={update} label="Email"  field="email" placeholder="you@email.com" type="email" />
-                <Field form={form} update={update} label="Phone"  field="phone" placeholder="+1 234 567 890" />
-              </Row2>
-              <Row2>
-                <Field form={form} update={update} label="LinkedIn" field="linkedin" placeholder="linkedin.com/in/yourname" />
-                <Field form={form} update={update} label="GitHub" field="github" placeholder="github.com/yourname" />
-              </Row2>
-              <Row2>
-                <Field form={form} update={update} label="Twitter / X" field="twitter" placeholder="x.com/yourname" />
-                <Field form={form} update={update} label="Portfolio" field="portfolio" placeholder="yourportfolio.com" />
-              </Row2>
-            </div>
-
-            {/* Summary */}
-            <div style={{ marginBottom: 20 }}>
-              <SectionTitle icon="📝" text="Professional summary" />
-              <TextArea form={form} update={update} label="Summary" field="summary" placeholder="Write 2-3 sentences about yourself..." />
-            </div>
-
-            {/* Experience */}
-            <div style={{ marginBottom: 20 }}>
-              <SectionTitle icon="💼" text="Work experience" />
-              {(form.experience || []).map((exp, i) => (
-                <div key={exp.id} style={{ position: "relative", marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #e5e7eb" }}>
-                  <button type="button" onClick={() => removeArrayItem("experience", i)} style={{ position:"absolute", top:0, right:0, background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize: 16 }}>×</button>
-                  <Row2>
-                    <ArrayField value={exp.jobtitle} onChange={(val) => updateArray("experience", i, "jobtitle", val)} label="Job title" placeholder="Senior Developer" />
-                    <ArrayField value={exp.company} onChange={(val) => updateArray("experience", i, "company", val)} label="Company" placeholder="Acme Corp" />
-                  </Row2>
-                  <Row2>
-                    <ArrayField value={exp.jobstart} onChange={(val) => updateArray("experience", i, "jobstart", val)} label="Start date" placeholder="2021" />
-                    <ArrayField value={exp.jobend} onChange={(val) => updateArray("experience", i, "jobend", val)} label="End date" placeholder="Present" />
-                  </Row2>
-                  <div style={{ marginBottom: 4 }}>
-                    <ArrayTextArea value={exp.jobdesc} onChange={(val) => updateArray("experience", i, "jobdesc", val)} label="Description" placeholder="Describe your responsibilities..." />
-                  </div>
-                </div>
-              ))}
-              <AddMore label="+ Add another position" onClick={() => addArrayItem("experience", { jobtitle:"", company:"", jobstart:"", jobend:"", jobdesc:"" })} />
-            </div>
-
-            {/* Education */}
-            <div style={{ marginBottom: 20 }}>
-              <SectionTitle icon="🎓" text="Education" />
-              {(form.education || []).map((edu, i) => (
-                <div key={edu.id} style={{ position: "relative", marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #e5e7eb" }}>
-                  <button type="button" onClick={() => removeArrayItem("education", i)} style={{ position:"absolute", top:0, right:0, background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize: 16 }}>×</button>
-                  <Row2>
-                    <ArrayField value={edu.degree} onChange={(val) => updateArray("education", i, "degree", val)} label="Degree" placeholder="B.S. Computer Science" />
-                    <ArrayField value={edu.school} onChange={(val) => updateArray("education", i, "school", val)} label="School" placeholder="University name" />
-                  </Row2>
-                  <Row2>
-                    <ArrayField value={edu.gradyear} onChange={(val) => updateArray("education", i, "gradyear", val)} label="Graduation year" placeholder="2020" />
-                    <ArrayField value={edu.gpa} onChange={(val) => updateArray("education", i, "gpa", val)} label="GPA (optional)" placeholder="3.8" />
-                  </Row2>
-                </div>
-              ))}
-              <AddMore label="+ Add education" onClick={() => addArrayItem("education", { degree:"", school:"", gradyear:"", gpa:"" })} />
-            </div>
-
-            {/* Projects */}
-            <div style={{ marginBottom: 20 }}>
-              <SectionTitle icon="🚀" text="Projects" />
-              {(form.projects || []).map((proj, i) => (
-                <div key={proj.id} style={{ position: "relative", marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #e5e7eb" }}>
-                  <button type="button" onClick={() => removeArrayItem("projects", i)} style={{ position:"absolute", top:0, right:0, background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize: 16 }}>×</button>
-                  <Row2>
-                    <ArrayField value={proj.name} onChange={(val) => updateArray("projects", i, "name", val)} label="Project Name" placeholder="Portfolio App" />
-                    <ArrayField value={proj.year} onChange={(val) => updateArray("projects", i, "year", val)} label="Year / Link" placeholder="2023 or github link" />
-                  </Row2>
-                  <div style={{ marginBottom: 4 }}>
-                    <ArrayTextArea value={proj.description} onChange={(val) => updateArray("projects", i, "description", val)} label="Description" placeholder="What did you build?" />
-                  </div>
-                </div>
-              ))}
-              <AddMore label="+ Add project" onClick={() => addArrayItem("projects", { name:"", year:"", description:"" })} />
-            </div>
-
-            {/* Certifications */}
-            <div style={{ marginBottom: 20 }}>
-              <SectionTitle icon="📜" text="Certifications" />
-              {(form.certifications || []).map((cert, i) => (
-                <div key={cert.id} style={{ position: "relative", marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #e5e7eb" }}>
-                  <button type="button" onClick={() => removeArrayItem("certifications", i)} style={{ position:"absolute", top:0, right:0, background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize: 16 }}>×</button>
-                  <Row2>
-                    <ArrayField value={cert.name} onChange={(val) => updateArray("certifications", i, "name", val)} label="Name" placeholder="AWS Certified" />
-                    <ArrayField value={cert.issuer} onChange={(val) => updateArray("certifications", i, "issuer", val)} label="Issuer" placeholder="Amazon" />
-                  </Row2>
-                  <ArrayField value={cert.year} onChange={(val) => updateArray("certifications", i, "year", val)} label="Year" placeholder="2022" />
-                </div>
-              ))}
-              <AddMore label="+ Add certification" onClick={() => addArrayItem("certifications", { name:"", issuer:"", year:"" })} />
-            </div>
-
-            {/* Skills */}
-            <div style={{ marginBottom: 20 }}>
-              <SectionTitle icon="⚡" text="Skills" />
-              <Field form={form} update={update} label="Skills (comma separated)" field="skills" placeholder="JavaScript, React, Python..." />
-            </div>
-
-            {/* Interests */}
-            <div style={{ marginBottom: 20 }}>
-              <SectionTitle icon="❤️" text="Interests" />
-              <Field form={form} update={update} label="Interests (comma separated)" field="interests" placeholder="Open Source, Reading, Hiking..." />
-            </div>
-
-            {/* Languages */}
-            <div style={{ marginBottom: 20 }}>
-              <SectionTitle icon="🌐" text="Languages" />
-              {(form.languages || []).map((lang, i) => (
-                <div key={lang.id} style={{ position: "relative", marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed #e5e7eb" }}>
-                  <button type="button" onClick={() => removeArrayItem("languages", i)} style={{ position:"absolute", top:0, right:0, background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize: 16 }}>×</button>
-                  <Row2>
-                    <ArrayField value={lang.language} onChange={(val) => updateArray("languages", i, "language", val)} label="Language" placeholder="English" />
-                    <FGroup label="Level">
-                      <select value={lang.langLevel || "Native"} onChange={(e) => updateArray("languages", i, "langLevel", e.target.value)} style={inputStyle}>
-                        {["Native", "Fluent", "Intermediate", "Basic"].map((l) => <option key={l}>{l}</option>)}
-                      </select>
-                    </FGroup>
-                  </Row2>
-                </div>
-              ))}
-              <AddMore label="+ Add language" onClick={() => addArrayItem("languages", { language:"", langLevel:"Native" })} />
-            </div>
+        {/* Right: Live Preview & Export */}
+        <div style={{ flex: 1, background: colors.slate[100], display: "flex", flexDirection: "column", padding: "32px", overflowY: "auto" }}>
+          <div ref={previewRef} style={{ background: "#fff", borderRadius: "24px", boxShadow: "0 20px 35px -12px rgba(0,0,0,0.15)", maxWidth: "550px", margin: "0 auto", overflow: "hidden" }}>
+            <ResumePreview config={config} form={form} />
           </div>
-
-          {/* Export bar */}
-          <div style={{ padding: "14px 20px", borderTop: "1px solid #e5e7eb", display: "flex", gap: 8, background: "#fff" }}>
-            <Btn variant="ghost" onClick={onBack} style={{ flex: 1 }}>Edit design</Btn>
-            {created ? (
-              <Btn variant="primary" style={{ flex: 1 }} onClick={handleDownload}>Download PDF ↗</Btn>
+          <div style={{ marginTop: "32px", display: "flex", gap: "16px", justifyContent: "center" }}>
+            {resumeCreated ? (
+              <Button variant="primary" onClick={handleDownload}>Download PDF ↗</Button>
             ) : (
-              <Btn variant="primary" style={{ flex: 1, opacity: isCreating ? 0.7 : 1 }} onClick={handleCreate} disabled={isCreating}>
-                {isCreating ? "Creating..." : "Submit & Create 🚀"}
-              </Btn>
+              <Button variant="primary" onClick={handleCreateResume} disabled={isCreating}>{isCreating ? "Creating..." : "Create & Save Resume"}</Button>
             )}
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ROOT — ResumePage  (wires all 3 steps together)
-// ─────────────────────────────────────────────────────────────────────────────
+// ========================
+// Main Component
+// ========================
 export default function ResumePage() {
-  const [step, setStep] = useState("gallery"); // "gallery" | "configure" | "builder"
+  const [step, setStep] = useState("gallery");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const { user, refreshUser } = useAuth();
-  const [config, setConfig] = useState({
-    accent: "#4f46e5",
-    font: "'Segoe UI', sans-serif",
-    layout: "sidebar",
-    photo: null,
-    circlePhoto: true,
-    showPhoto: true,
-  });
+  const [config, setConfig] = useState({ accent: "#2563eb", font: "'Inter', sans-serif", layout: "sidebar", photo: null, circlePhoto: true, showPhoto: true });
 
   const handleSelectTemplate = (template) => {
     setSelectedTemplate(template);
-    setConfig((c) => ({ ...c, accent: template.accent, layout: template.layout }));
+    setConfig(prev => ({ ...prev, accent: template.accent, layout: template.layout }));
     setStep("configure");
   };
 
-  if (step === "gallery") {
-    return <GalleryStep onSelect={handleSelectTemplate} />;
-  }
-
-  if (step === "configure") {
-    return (
-      <ConfigureStep
-        template={selectedTemplate}
-        config={config}
-        setConfig={setConfig}
-        onBack={() => setStep("gallery")}
-        onNext={() => setStep("builder")}
-      />
-    );
-  }
-
-  return (
-    <BuilderStep
-      template={selectedTemplate}
-      config={config}
-      onBack={() => setStep("configure")}
-      onChangeTemplate={() => setStep("gallery")}
-      user={user}
-      refreshUser={refreshUser}
-    />
-  );
+  if (step === "gallery") return <GalleryStep onSelectTemplate={handleSelectTemplate} />;
+  if (step === "configure") return <ConfigureStep template={selectedTemplate} config={config} setConfig={setConfig} onBack={() => setStep("gallery")} onNext={() => setStep("builder")} />;
+  return <BuilderStep template={selectedTemplate} config={config} onBack={() => setStep("configure")} onChangeTemplate={() => setStep("gallery")} user={user} refreshUser={refreshUser} />;
 }

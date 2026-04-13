@@ -6,7 +6,7 @@ export const COLORS = [
   "#111827", "#374151", "#6d28d9", "#b91c1c", "#92400e",
 ];
 
-// ─── All 105 Templates ────────────────────────────────────────────────────────
+// ─── All Templates ────────────────────────────────────────────────────────────
 export const TEMPLATES = [
   { id: 1,   name: "Traditional Classic",   type: "Modern",    badge: "popular", accent: "#1e3a8a", layout: "sidebar"    },
   { id: 2,   name: "Modern Blue Sidebar",   type: "Modern",    badge: "popular", accent: "#2563eb", layout: "sidebar"    },
@@ -113,19 +113,38 @@ export const TEMPLATES = [
   { id: 103, name: "Blockchain Dev",        type: "Tech",      badge: "",        accent: "#1f2937", layout: "minimal"    },
   { id: 104, name: "Open Source CV",        type: "Tech",      badge: "",        accent: "#374151", layout: "minimal"    },
   { id: 105, name: "COO Profile II",        type: "Executive", badge: "",        accent: "#0f172a", layout: "corporate"  },
+  { id: 106, name: "Classic Split Pro",     type: "Modern",    badge: "new",     accent: "#1e293b", layout: "resumeio"         },
+  { id: 107, name: "Ocean Sidebar Expert",  type: "Corporate", badge: "new",     accent: "#0f766e", layout: "resumeioSidebar"  },
+  { id: 108, name: "Mono Detail Grid",      type: "ATS",       badge: "",        accent: "#334155", layout: "resumeioBoxed"    },
+  { id: 109, name: "Navy Executive Panel",  type: "Executive", badge: "new",     accent: "#0f172a", layout: "resumeioDark"     },
+  { id: 110, name: "Soft Minimal Split",    type: "Minimal",   badge: "",        accent: "#475569", layout: "resumeioClean"    },
+  { id: 111, name: "Green Profile Line",    type: "Modern",    badge: "",        accent: "#0f766e", layout: "resumeioSidebar"  },
+  { id: 112, name: "Melanie Blue Panel",    type: "Corporate", badge: "new",     accent: "#3f6fc4", layout: "coolBluePanel"   },
+  { id: 113, name: "Jamie Noir Hero",       type: "Modern",    badge: "new",     accent: "#111827", layout: "noirTop"         },
+  { id: 114, name: "Royal Curve",           type: "Designer",  badge: "new",     accent: "#4c2f8f", layout: "purpleCurve"     },
+  { id: 115, name: "Mint Geometry",         type: "Designer",  badge: "new",     accent: "#22c7a0", layout: "mintGeo"         },
+  { id: 116, name: "Modern Popular Mono",   type: "Modern",    badge: "new",     accent: "#111827", layout: "modernPopular"   },
+  { id: 117, name: "Modern Popular Cyan",   type: "Modern",    badge: "",        accent: "#0ea5e9", layout: "modernPopular"   },
+  { id: 118, name: "Brown Graphic Pro",     type: "Designer",  badge: "new",     accent: "#b96434", layout: "brownClassic"    },
+  { id: 119, name: "Jamie Noir Exact",      type: "Modern",    badge: "new",     accent: "#111827", layout: "noirHeroExact"   },
+  { id: 120, name: "Modern Clean Strip",    type: "Modern",    badge: "new",     accent: "#111827", layout: "modernCleanStrip"},
+  { id: 121, name: "Mono Sidebar Classic",  type: "Minimal",   badge: "new",     accent: "#6b7280", layout: "monoSidebarClassic"},
+  { id: 122, name: "Teal Executive Side",   type: "Corporate", badge: "new",     accent: "#0b5568", layout: "tealExecutiveSide"},
+  { id: 123, name: "Choco Profile Art",     type: "Designer",  badge: "new",     accent: "#7c3f2b", layout: "chocoProfileArt"},
+  { id: 124, name: "Teal Data Grid",        type: "Modern",    badge: "new",     accent: "#74a89f", layout: "tealDataGrid"},
 ];
 
 // ─── Gallery category groupings ───────────────────────────────────────────────
 export const CATEGORIES = {
-  "Popular Picks":         [1, 2, 12, 21, 31, 32, 46, 65, 11, 41],
-  "Modern & Stylish":      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 56, 60, 76, 79, 82, 95],
-  "Minimal & Clean":       [11, 13, 14, 15, 19, 57, 58, 73, 78, 81, 87],
-  "ATS Friendly":          [12, 16, 17, 18, 20, 85, 86],
-  "Creative & Bold":       [21, 22, 23, 24, 25, 27, 28, 29, 30, 63, 64, 77, 83, 88, 89, 90],
-  "Corporate & Executive": [31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 61, 62, 66, 67, 68, 74, 75, 80, 84, 91, 92, 93, 98, 99, 100],
+  "Popular Picks":         [1, 2, 12, 21, 31, 32, 46, 65, 106, 119],
+  "Modern & Stylish":      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 56, 60, 76, 79, 82, 95, 106, 111, 113, 116, 117, 119, 120, 122, 124],
+  "Minimal & Clean":       [11, 13, 14, 15, 19, 57, 58, 73, 78, 81, 87, 108, 110, 121],
+  "ATS Friendly":          [12, 16, 17, 18, 20, 85, 86, 108, 110],
+  "Creative & Bold":       [21, 22, 23, 24, 25, 27, 28, 29, 30, 63, 64, 77, 83, 88, 89, 90, 114, 115, 118, 123],
+  "Corporate & Executive": [31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 61, 62, 66, 67, 68, 74, 75, 80, 84, 91, 92, 93, 98, 99, 100, 107, 109, 112, 122],
   "Tech & Engineering":    [46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 96, 101, 102, 103, 104],
   "Academic & Research":   [41, 42, 43, 44, 45, 59, 69, 70, 94, 97],
-  "Designer Portfolio":    [22, 24, 26, 29, 65, 71, 72, 89],
+  "Designer Portfolio":    [22, 24, 26, 29, 65, 71, 72, 89, 106, 107, 108, 109, 110, 111, 114, 115, 118, 121, 123],
 };
 
 export const FILTER_TYPES = ["All", "Modern", "Minimal", "ATS", "Creative", "Corporate", "Executive", "Tech", "Academic", "Designer"];
