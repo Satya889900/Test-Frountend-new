@@ -132,19 +132,24 @@ export const TEMPLATES = [
   { id: 122, name: "Teal Executive Side",   type: "Corporate", badge: "new",     accent: "#0b5568", layout: "tealExecutiveSide"},
   { id: 123, name: "Choco Profile Art",     type: "Designer",  badge: "new",     accent: "#7c3f2b", layout: "chocoProfileArt"},
   { id: 124, name: "Teal Data Grid",        type: "Modern",    badge: "new",     accent: "#74a89f", layout: "tealDataGrid"},
+  { id: 125, name: "Multi Color Row",       type: "Designer",  badge: "new",     accent: "#0b1f3a", layout: "multiColorRow"},
+  { id: 126, name: "Cat Resume Executive",  type: "Corporate", badge: "new",     accent: "#1e3a8a", layout: "catExecutive"},
+  { id: 127, name: "Tech Resume Minimal",   type: "Tech",      badge: "new",     accent: "#0f172a", layout: "techMinimalist"},
+  { id: 128, name: "Modern Resume Mint",    type: "Modern",    badge: "new",     accent: "#84a98c", layout: "modernCreativeMint"},
+  { id: 129, name: "Warm Professional",     type: "Executive", badge: "new",     accent: "#8b4513", layout: "warmProfessional"},
 ];
 
 // ─── Gallery category groupings ───────────────────────────────────────────────
 export const CATEGORIES = {
   "Popular Picks":         [1, 2, 12, 21, 31, 32, 46, 65, 106, 119],
-  "Modern & Stylish":      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 56, 60, 76, 79, 82, 95, 106, 111, 113, 116, 117, 119, 120, 122, 124],
+  "Modern & Stylish":      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 56, 60, 76, 79, 82, 95, 106, 111, 113, 116, 117, 119, 120, 122, 124, 125, 128],
   "Minimal & Clean":       [11, 13, 14, 15, 19, 57, 58, 73, 78, 81, 87, 108, 110, 121],
   "ATS Friendly":          [12, 16, 17, 18, 20, 85, 86, 108, 110],
-  "Creative & Bold":       [21, 22, 23, 24, 25, 27, 28, 29, 30, 63, 64, 77, 83, 88, 89, 90, 114, 115, 118, 123],
-  "Corporate & Executive": [31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 61, 62, 66, 67, 68, 74, 75, 80, 84, 91, 92, 93, 98, 99, 100, 107, 109, 112, 122],
-  "Tech & Engineering":    [46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 96, 101, 102, 103, 104],
+  "Creative & Bold":       [21, 22, 23, 24, 25, 27, 28, 29, 30, 63, 64, 77, 83, 88, 89, 90, 114, 115, 118, 123, 125, 128],
+  "Corporate & Executive": [31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 61, 62, 66, 67, 68, 74, 75, 80, 84, 91, 92, 93, 98, 99, 100, 107, 109, 112, 122, 126, 129],
+  "Tech & Engineering":    [46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 96, 101, 102, 103, 104, 127],
   "Academic & Research":   [41, 42, 43, 44, 45, 59, 69, 70, 94, 97],
-  "Designer Portfolio":    [22, 24, 26, 29, 65, 71, 72, 89, 106, 107, 108, 109, 110, 111, 114, 115, 118, 121, 123],
+  "Designer Portfolio":    [22, 24, 26, 29, 65, 71, 72, 89, 106, 107, 108, 109, 110, 111, 114, 115, 118, 121, 123, 125],
 };
 
 export const FILTER_TYPES = ["All", "Modern", "Minimal", "ATS", "Creative", "Corporate", "Executive", "Tech", "Academic", "Designer"];

@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import html2pdf from "html2pdf.js";
 import { createResume, updateResume, downloadResume } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
-import ResumePreview from "./ResumepreviewV2";
+import ResumePreview from "./ResumePreview";
 import {
   TEMPLATES,
   CATEGORIES,
@@ -406,6 +406,56 @@ const TemplateThumbnail = ({ accent, layout }) => {
       </div>
     );
   }
+  if (layout === "multiColorRow") {
+    return (
+      <div style={{ height: "100%", background: "#fff", display: "grid", gridTemplateRows: "32% 68%" }}>
+        <div style={{ background: "#0b1f3a", padding: "8px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 4, marginTop: 8 }}>
+            {["#facc15", "#f97316", "#1e3a8a", "#7f1d1d", "#ef4444", "#0ea5e9"].map((c, i) => <div key={i} style={{ height: 5, background: c }} />)}
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "0.34fr 0.66fr" }}>
+          <div style={{ background: "#fff7ed", padding: "8px 6px" }}>{line(62, 0.12)}{line(50, 0.12)}</div>
+          <div style={{ background: "#fff", padding: "8px 6px" }}>{line(84, 0.12)}{line(70, 0.12)}{line(78, 0.12)}</div>
+        </div>
+      </div>
+    );
+  }
+  if (layout === "catExecutive") {
+    return (
+      <div style={{ display: "flex", height: "100%", background: "#fff" }}>
+        <div style={{ width: "31%", background: "#f8fafc", borderRight: `1px solid ${colors.slate[300]}`, padding: "8px 6px" }}>{line(62, 0.12)}{line(48, 0.12)}</div>
+        <div style={{ flex: 1, padding: "8px 6px" }}>{line(86, 0.12)}{line(72, 0.12)}{line(80, 0.12)}</div>
+      </div>
+    );
+  }
+  if (layout === "techMinimalist") {
+    return (
+      <div style={{ height: "100%", background: "#fff", padding: "8px 6px" }}>
+        <div style={{ height: "3px", width: "48%", background: "#111827", marginBottom: "6px" }} />
+        {line(90, 0.12)}{line(74, 0.12)}{line(82, 0.12)}
+      </div>
+    );
+  }
+  if (layout === "modernCreativeMint") {
+    return (
+      <div style={{ height: "100%", background: "#fff", display: "grid", gridTemplateRows: "36% 64%" }}>
+        <div style={{ background: "#c9ddca" }} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+          <div style={{ borderRight: `1px solid ${colors.slate[300]}`, padding: "8px 6px" }}>{line(72, 0.12)}</div>
+          <div style={{ padding: "8px 6px" }}>{line(82, 0.12)}</div>
+        </div>
+      </div>
+    );
+  }
+  if (layout === "warmProfessional") {
+    return (
+      <div style={{ display: "flex", height: "100%", background: "#fff" }}>
+        <div style={{ flex: 1, padding: "8px 6px" }}>{line(88, 0.12)}{line(74, 0.12)}{line(82, 0.12)}</div>
+        <div style={{ width: "30%", background: "#faf7f2", borderLeft: `1px solid ${colors.slate[300]}`, padding: "8px 6px" }}>{line(64, 0.12)}</div>
+      </div>
+    );
+  }
   if (layout === "noirHeroExact") {
     return (
       <div style={{ height: "100%", background: "#fff" }}>
@@ -648,12 +698,12 @@ const ConfigureStep = ({ template, config, setConfig, onBack, onNext }) => {
 
           <SectionCard title="Layout Style" icon="📐">
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              {["sidebar", "top", "minimal", "corporate", "resumeio", "resumeioSidebar", "resumeioDark", "resumeioBoxed", "resumeioClean", "coolBluePanel", "noirTop", "purpleCurve", "mintGeo", "modernPopular", "modernCleanStrip", "monoSidebarClassic", "tealExecutiveSide", "chocoProfileArt", "tealDataGrid", "noirHeroExact", "brownClassic"].map(layout => (
+              {["sidebar", "top", "minimal", "corporate", "resumeio", "resumeioSidebar", "resumeioDark", "resumeioBoxed", "resumeioClean", "coolBluePanel", "noirTop", "purpleCurve", "mintGeo", "modernPopular", "modernCleanStrip", "monoSidebarClassic", "tealExecutiveSide", "chocoProfileArt", "tealDataGrid", "multiColorRow", "catExecutive", "techMinimalist", "modernCreativeMint", "warmProfessional", "noirHeroExact", "brownClassic"].map(layout => (
                 <button key={layout} onClick={() => updateConfig("layout", layout)} style={{
                   padding: "8px 18px", borderRadius: "40px", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer", textTransform: "capitalize",
                   background: config.layout === layout ? colors.primary : "#fff", color: config.layout === layout ? "#fff" : colors.slate[700],
                   border: `1px solid ${config.layout === layout ? colors.primary : colors.slate[200]}`,
-                }}>{layout === "top" ? "Top Header" : layout === "resumeio" ? "Classic Split" : layout === "resumeioSidebar" ? "Ocean Sidebar" : layout === "resumeioDark" ? "Navy Panel" : layout === "resumeioBoxed" ? "Boxed Header" : layout === "resumeioClean" ? "Clean Split" : layout === "coolBluePanel" ? "Blue Panel" : layout === "noirTop" ? "Noir Hero" : layout === "purpleCurve" ? "Purple Curve" : layout === "mintGeo" ? "Mint Geometry" : layout === "modernPopular" ? "Modern Popular" : layout === "modernCleanStrip" ? "Modern Clean Strip" : layout === "monoSidebarClassic" ? "Mono Sidebar Classic" : layout === "tealExecutiveSide" ? "Teal Executive Side" : layout === "chocoProfileArt" ? "Choco Profile Art" : layout === "tealDataGrid" ? "Teal Data Grid" : layout === "noirHeroExact" ? "Noir Hero Exact" : layout === "brownClassic" ? "Brown Classic" : layout}</button>
+                }}>{layout === "top" ? "Top Header" : layout === "resumeio" ? "Classic Split" : layout === "resumeioSidebar" ? "Ocean Sidebar" : layout === "resumeioDark" ? "Navy Panel" : layout === "resumeioBoxed" ? "Boxed Header" : layout === "resumeioClean" ? "Clean Split" : layout === "coolBluePanel" ? "Blue Panel" : layout === "noirTop" ? "Noir Hero" : layout === "purpleCurve" ? "Purple Curve" : layout === "mintGeo" ? "Mint Geometry" : layout === "modernPopular" ? "Modern Popular" : layout === "modernCleanStrip" ? "Modern Clean Strip" : layout === "monoSidebarClassic" ? "Mono Sidebar Classic" : layout === "tealExecutiveSide" ? "Teal Executive Side" : layout === "chocoProfileArt" ? "Choco Profile Art" : layout === "tealDataGrid" ? "Teal Data Grid" : layout === "multiColorRow" ? "Multi Color Row" : layout === "catExecutive" ? "Cat Executive" : layout === "techMinimalist" ? "Tech Minimalist" : layout === "modernCreativeMint" ? "Modern Creative Mint" : layout === "warmProfessional" ? "Warm Professional" : layout === "noirHeroExact" ? "Noir Hero Exact" : layout === "brownClassic" ? "Brown Classic" : layout}</button>
               ))}
             </div>
           </SectionCard>
@@ -661,8 +711,10 @@ const ConfigureStep = ({ template, config, setConfig, onBack, onNext }) => {
 
         {/* Right Panel - Live Preview */}
         <div style={{ flex: 1, background: colors.slate[100], display: "flex", flexDirection: "column", padding: "32px", overflowY: "auto" }}>
-          <div style={{ background: "#fff", borderRadius: "24px", boxShadow: "0 20px 35px -12px rgba(0,0,0,0.1)", maxWidth: "500px", margin: "0 auto", overflow: "hidden" }}>
-            <ResumePreview config={config} form={DEFAULT_FORM} />
+          <div style={{ background: "#fff", borderRadius: "24px", boxShadow: "0 20px 35px -12px rgba(0,0,0,0.1)", width: "100%", maxWidth: "560px", margin: "0 auto", padding: "12px" }}>
+            <div style={{ width: "100%", aspectRatio: "210 / 297", background: "#fff", overflow: "hidden", borderRadius: "10px" }}>
+              <ResumePreview config={config} form={DEFAULT_FORM} />
+            </div>
           </div>
           <div style={{ marginTop: "auto", paddingTop: "32px", display: "flex", gap: "16px", justifyContent: "center" }}>
             <Button variant="secondary" onClick={onBack}>← Back</Button>
@@ -710,7 +762,7 @@ const BuilderStep = ({ template, config, onBack, onChangeTemplate, user, refresh
     setIsCreating(true);
     try {
       const element = previewRef.current;
-      const opt = { margin: 0, filename: 'resume.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
+      const opt = { margin: 0, filename: 'resume.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } };
       const pdfBlob = await html2pdf().from(element).set(opt).output('blob');
       const file = new File([pdfBlob], "resume.pdf", { type: "application/pdf" });
       if (user?.resume) await updateResume(file);
@@ -792,8 +844,10 @@ const BuilderStep = ({ template, config, onBack, onChangeTemplate, user, refresh
 
         {/* Right: Live Preview & Export */}
         <div style={{ flex: 1, background: colors.slate[100], display: "flex", flexDirection: "column", padding: "32px", overflowY: "auto" }}>
-          <div ref={previewRef} style={{ background: "#fff", borderRadius: "24px", boxShadow: "0 20px 35px -12px rgba(0,0,0,0.15)", maxWidth: "550px", margin: "0 auto", overflow: "hidden" }}>
-            <ResumePreview config={config} form={form} />
+          <div ref={previewRef} style={{ background: "#fff", borderRadius: "24px", boxShadow: "0 20px 35px -12px rgba(0,0,0,0.15)", width: "100%", maxWidth: "560px", margin: "0 auto", padding: "12px" }}>
+            <div style={{ width: "100%", aspectRatio: "210 / 297", background: "#fff", overflow: "hidden", borderRadius: "10px" }}>
+              <ResumePreview config={config} form={form} />
+            </div>
           </div>
           <div style={{ marginTop: "32px", display: "flex", gap: "16px", justifyContent: "center" }}>
             {resumeCreated ? (

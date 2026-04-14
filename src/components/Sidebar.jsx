@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
 const NAV_ITEMS = [
-  { icon: "⊞", label: "Dashboard",       route: "/dashboard" },
+{ icon: "⊞", label: "Dashboard",       route: "/dashboard" },
+  { icon: "📁", label: "Documents",      route: "/documents" },
   { icon: "📄", label: "Resume / CV",     route: "/resume-builder" },
   { icon: "✉️",  label: "Business Letter", route: "/letter-builder" },
   { icon: "🧾", label: "Invoice",         route: "/invoice-builder" },

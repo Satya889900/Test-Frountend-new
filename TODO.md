@@ -1,10 +1,8 @@
-# Resume Page Full-Width Layout (No Sidebar Overflow Fix) ✅
+# Sidebar Documents Button Task
 
 ## Steps:
-- [x] Step 1: Update Layout.jsx to support showSidebar prop
-- [x] Step 2: Update ResumePage.jsx to use showSidebar={false}
-- [ ] Step 3: Test the page at /resume-builder for full-width, no overflow
-- [x] Step 4: Mark complete
-
-**Status: Changes implemented. Test recommended: npm run dev && navigate to http://localhost:5173/resume-builder. Navbar remains, left sidebar hidden, content full-width (no margin-left), no horizontal overflow.**
+- [x] 1. Create TODO.md with plan steps
+- [x] 2. Edit src/components/Sidebar.jsx - Add Documents nav item to NAV_ITEMS
+- [x] 3. Edit src/App.jsx - Add /documents route with DocumentBuilder
+- [x] 4. Verify changes and complete task
 

@@ -235,6 +235,14 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route
+            path="/documents"
+            element={
+              <PrivateRoute>
+                <DocumentBuilder />
+              </PrivateRoute>
+            }
+          />
         </Route>
       </Routes>
     </BrowserRouter>
