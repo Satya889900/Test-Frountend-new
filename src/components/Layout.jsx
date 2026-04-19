@@ -6,7 +6,8 @@ import Sidebar from "./Sidebar";
  * Sidebar is permanently fixed on the left.
  * All child pages render via <Outlet /> on the right.
  */
-function Layout({ userName = "Satya" }) {
+function Layout({ userName = "Satya", showSidebar = true, children }) {
+  const content = children !== undefined ? children : <Outlet />;
   return (
     <div style={{
       display: "flex",
@@ -17,7 +18,7 @@ function Layout({ userName = "Satya" }) {
       fontFamily: "'Inter', sans-serif",
     }}>
       {/* ── Permanent Sidebar ── */}
-      <Sidebar userName={userName} />
+      {showSidebar && <Sidebar userName={userName} />}
 
       {/* ── Page Content ── */}
       <div style={{
@@ -33,7 +34,7 @@ function Layout({ userName = "Satya" }) {
           overflowY: "auto",
           position: "relative",
         }}>
-          <Outlet />
+          {content}
         </div>
       </div>
     </div>

@@ -32,7 +32,6 @@ export default function AppRoutes() {
           <Route path="/resume-builder" element={<PrivateRoute><ResumePage /></PrivateRoute>} />
           <Route path="/editor/resume/:templateName" element={<PrivateRoute><ResumePage /></PrivateRoute>} />
           <Route path="/letter-builder" element={<PrivateRoute><BusinessLetterPage /></PrivateRoute>} />
-          <Route path="/editor/letter/:templateName" element={<PrivateRoute><BusinessLetterEditor /></PrivateRoute>} />
           <Route path="/invoice-builder" element={<PrivateRoute><DocumentBuilder /></PrivateRoute>} />
           <Route path="/contract-builder" element={<PrivateRoute><DocumentBuilder /></PrivateRoute>} />
           <Route path="/presentation-builder" element={<PrivateRoute><DocumentBuilder /></PrivateRoute>} />
@@ -54,6 +53,11 @@ export default function AppRoutes() {
           <Route path="/worksheet-builder" element={<PrivateRoute><DocumentBuilder /></PrivateRoute>} />
           <Route path="/chart-builder" element={<PrivateRoute><DocumentBuilder /></PrivateRoute>} />
           <Route path="/documents" element={<PrivateRoute><DocumentBuilder /></PrivateRoute>} />
+        </Route>
+
+        {/* Full-width pages (no permanent app sidebar) */}
+        <Route element={<Layout userName={user?.name || ""} showSidebar={false} />}>
+          <Route path="/editor/letter/:templateId" element={<PrivateRoute><BusinessLetterEditor /></PrivateRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>
