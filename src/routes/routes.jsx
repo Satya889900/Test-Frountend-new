@@ -5,6 +5,9 @@ import Register from "../pages/Login Page/Register";
 import Dashboard from "../pages/Dashboard";
 import DocumentBuilder from "../pages/DocumentBuilder";
 import ResumePage from "../pages/Resume/ResumePage";
+import TemplatePage from "../pages/Templates/TemplatePage";
+import EditorPage from "../pages/Templates/Viewtemplate";
+import PreviewPage from "../pages/Templates/Alltemplates";
 import BusinessLetterPage from "../pages/BusinessLetter/BusinessLetterPage";
 import BusinessLetterEditor from "../pages/BusinessLetter/BusinessLetterEditor";
 import ProfilePage from "../pages/Profile/ProfilePage";
@@ -32,6 +35,7 @@ export default function AppRoutes() {
           <Route path="/resume-builder" element={<PrivateRoute><ResumePage /></PrivateRoute>} />
           <Route path="/editor/resume/:templateName" element={<PrivateRoute><ResumePage /></PrivateRoute>} />
           <Route path="/letter-builder" element={<PrivateRoute><BusinessLetterPage /></PrivateRoute>} />
+          <Route path="/editor/letter/:templateId" element={<PrivateRoute><BusinessLetterEditor /></PrivateRoute>} />
           <Route path="/invoice-builder" element={<PrivateRoute><DocumentBuilder /></PrivateRoute>} />
           <Route path="/contract-builder" element={<PrivateRoute><DocumentBuilder /></PrivateRoute>} />
           <Route path="/presentation-builder" element={<PrivateRoute><DocumentBuilder /></PrivateRoute>} />
@@ -53,11 +57,11 @@ export default function AppRoutes() {
           <Route path="/worksheet-builder" element={<PrivateRoute><DocumentBuilder /></PrivateRoute>} />
           <Route path="/chart-builder" element={<PrivateRoute><DocumentBuilder /></PrivateRoute>} />
           <Route path="/documents" element={<PrivateRoute><DocumentBuilder /></PrivateRoute>} />
-        </Route>
 
-        {/* Full-width pages (no permanent app sidebar) */}
-        <Route element={<Layout userName={user?.name || ""} showSidebar={false} />}>
-          <Route path="/editor/letter/:templateId" element={<PrivateRoute><BusinessLetterEditor /></PrivateRoute>} />
+          {/* Business Letter Routes */}
+          <Route path="/templates" element={<PrivateRoute><TemplatePage /></PrivateRoute>} />
+          <Route path="/editor" element={<PrivateRoute><EditorPage /></PrivateRoute>} />
+          <Route path="/preview" element={<PrivateRoute><PreviewPage /></PrivateRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -1,0 +1,50 @@
+// src/templates/LetterModern.jsx
+export default function LetterModern({ data, color }) {
+  const getColorClass = () => {
+    const colors = {
+      blue: "border-blue-500",
+      red: "border-red-500",
+      yellow: "border-yellow-500",
+      green: "border-green-500",
+      purple: "border-purple-500"
+    };
+    return colors[color] || "border-blue-500";
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
+      <div className={`h-2 bg-gradient-to-r from-${color}-500 to-cyan-500`}></div>
+      <div className="p-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">{data.company || "Your Company"}</h1>
+          <p className="text-gray-500 mt-1">Business Letter</p>
+        </div>
+        
+        <div className="mb-6 flex justify-between items-center text-sm text-gray-600">
+          <div>
+            <p><strong>Date:</strong> {data.date || "No date"}</p>
+          </div>
+          <div>
+            <p><strong>To:</strong> {data.receiver || "Receiver"}</p>
+          </div>
+        </div>
+        
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-800 mb-3">
+            Subject: {data.subject || "No Subject"}
+          </h2>
+          <div className="prose text-gray-700 leading-relaxed">
+            {data.body.split('\n').map((paragraph, idx) => (
+              <p key={idx} className="mb-4">{paragraph}</p>
+            ))}
+          </div>
+        </div>
+        
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <p className="text-gray-600">Sincerely,</p>
+          <p className="font-semibold text-gray-800 mt-2">{data.company || "Your Company"}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
