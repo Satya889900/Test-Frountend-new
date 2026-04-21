@@ -18,7 +18,7 @@ import {
   SHAPE_TYPES, SHAPE_OPACITIES, SHAPE_OPACITY_LABELS,
   HEADING_FONTS, BODY_FONTS, HEADING_FONT_NAMES, BODY_FONT_NAMES,
   FONTS_URL, DEFAULT_DESIGN, DEFAULT_FORM, PALETTE,
-  validateField, isFormComplete, formProgress, uid,
+  validateField, isFormComplete, formProgress, uid, formFieldsFor,
   LetterPreview, Chip, Row, SectionHead, StepRail,
 } from "../../data/Constant";
 
@@ -156,7 +156,7 @@ function StepChoose({ state, setState, onNext }) {
 function StepEditor({ state, setState, onBack, onNext }) {
   const [designTab, setDesignTab] = useState("border");
   const [errors, setErrors] = useState({});
-  const showDetails = false;
+  const [showDetails, setShowDetails] = useState(true);
 
   const accentHex = COLORS[state.design.accentColor]?.hex || "#3b82f6";
 
@@ -167,52 +167,74 @@ function StepEditor({ state, setState, onBack, onNext }) {
     setState((s) => ({ ...s, design: { ...s.design, [k]: v } }));
 
   const handleFieldChange = (k, v) => {
-    setForm(k, v);
-    setErrors((prev) => ({ ...prev, [k]: validateField(k, v) }));
+    setState((s) => {
+      const nextForm = { ...s.form, [k]: v };
+
+      // Back-compat + shared preview keys
+      if (s.docType === "resume") {
+        if (k === "fullName") nextForm.company = v;
+        if (k === "email") nextForm.receiver = v;
+        if (k === "phone") nextForm.subject = v;
+      }
+      if (s.docType === "invoice") {
+        if (k === "businessName") nextForm.company = v;
+        if (k === "clientName") {
+          nextForm.billTo = v;
+          nextForm.receiver = v;
+        }
+        if (k === "clientAddress") nextForm.billToAddress = v;
+      }
+
+      return { ...s, form: nextForm };
+    });
+    setErrors((prev) => ({ ...prev, [k]: validateField(k, v, state.docType) }));
   };
 
   const progress = formProgress(state.form, state.docType);
-  const canProceed = showDetails ? isFormComplete(state.form, state.docType) : true;
+  const canProceed = true;
 
-  const FORM_FIELDS =
-    state.docType === "resume"
-      ? [
-          { key: "company", label: "Full Name", type: "text", ph: "e.g. John Doe" },
-          { key: "date", label: "Date of Birth", type: "date", ph: "" },
-          { key: "receiver", label: "Contact Email", type: "email", ph: "e.g. john@example.com" },
-          { key: "subject", label: "Phone", type: "tel", ph: "e.g. +1 555 1234" },
-          {
-            key: "summary",
-            label: "Professional Summary",
-            type: "textarea",
-            ph: "Brief overview...",
-            hint: "min. 10 characters",
-          },
-        ]
-      : [
-          { key: "company", label: "Company Name", type: "text", ph: "e.g. Acme Corp" },
-          { key: "date", label: "Date", type: "date", ph: "" },
-          { key: "receiver", label: "Receiver Name", type: "text", ph: "e.g. Mr. John Smith" },
-          { key: "subject", label: "Subject", type: "text", ph: "e.g. Partnership Proposal" },
-          {
-            key: "body",
-            label: "Message Body",
-            type: "textarea",
-            ph: "Write your message here...",
-            hint: "min. 10 characters",
-          },
-        ];
+  const FORM_FIELDS = formFieldsFor(state.docType);
 
-  const previewForm =
-    state.docType === "resume"
-      ? { ...state.form, body: state.form.summary || state.form.body }
-      : state.form;
+  const handleImageField = (k, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setForm(k, reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleDesignImage = (k, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setDesign(k, reader.result);
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div style={{ flex:1, display:"grid", gridTemplateColumns:"1fr 1fr", overflow:"hidden", minHeight:0 }}>
 
       {/* ── LEFT: Form + Design panel ── */}
       <div style={{ overflowY:"auto", padding:"28px 32px", borderRight:"1px solid rgba(0,0,0,.08)" }}>
+
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:"#0d0d0f"}}>
+            Editor
+          </div>
+          <button
+            onClick={() => setShowDetails((v) => !v)}
+            style={{
+              padding:"7px 12px",
+              borderRadius:10,
+              border:"1px solid rgba(0,0,0,.12)",
+              background:"white",
+              color:"#3a3a45",
+              fontSize:12,
+              fontWeight:700,
+              cursor:"pointer",
+            }}
+          >
+            {showDetails ? "Hide Fields" : "Show Fields"}
+          </button>
+        </div>
 
         {showDetails && (
           <>
@@ -233,16 +255,77 @@ function StepEditor({ state, setState, onBack, onNext }) {
           <div style={{fontSize:13,color:"#7a7a8a",marginBottom:22}}>Fill all required fields to proceed</div>
 
           {FORM_FIELDS.map((f) => (
+            (f.key === "profileImage" && !state.form.includeProfileImage) ? null :
+            (f.key === "logoImage" && !state.form.includeLogo) ? null :
             <div key={f.key} style={{marginBottom:16}}>
               <label style={{display:"block",fontSize:13,fontWeight:500,color:"#3a3a45",marginBottom:6}}>
-                {f.label} <span style={{color:"#ef4444"}}>*</span>
+                {f.label} {f.required && <span style={{color:"#ef4444"}}>*</span>}
                 {f.hint && <span style={{fontSize:11,color:"#7a7a8a",marginLeft:8}}>{f.hint}</span>}
               </label>
-              {f.type === "textarea" ? (
+              {f.type === "toggle" ? (
+                <label style={{display:"flex",alignItems:"center",gap:10,fontSize:13,color:"#3a3a45",userSelect:"none"}}>
+                  <input
+                    type="checkbox"
+                    checked={!!state.form[f.key]}
+                    onChange={(e) => handleFieldChange(f.key, e.target.checked)}
+                    style={{width:18,height:18,accentColor:accentHex}}
+                  />
+                  <span>{state.form[f.key] ? "Enabled" : "Disabled"}</span>
+                </label>
+              ) : f.type === "image" ? (
+                <div style={{display:"grid",gap:10}}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageField(f.key, e.target.files?.[0])}
+                    style={{fontSize:12}}
+                  />
+                  <input
+                    placeholder="or paste image URL"
+                    value={state.form[f.key] ?? ""}
+                    onChange={(e) => handleFieldChange(f.key, e.target.value)}
+                    style={{
+                      width:"100%", padding:"10px 12px",
+                      border:"1.5px solid rgba(0,0,0,.12)",
+                      borderRadius:10, fontSize:13, background:"white", outline:"none",
+                      fontFamily:"'DM Sans',sans-serif",
+                    }}
+                  />
+                  {state.form[f.key] && (
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+                      <img
+                        src={state.form[f.key]}
+                        alt="preview"
+                        style={{width:46,height:46,borderRadius:12,objectFit:"cover",border:"1px solid rgba(0,0,0,.12)"}}
+                      />
+                      <div style={{fontSize:12,color:"#7a7a8a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        Image selected
+                      </div>
+                      </div>
+                      <button
+                        onClick={() => setForm(f.key, "")}
+                        style={{
+                          padding:"8px 12px",
+                          borderRadius:10,
+                          border:"1px solid rgba(0,0,0,.12)",
+                          background:"white",
+                          color:"#3a3a45",
+                          fontSize:12,
+                          fontWeight:700,
+                          cursor:"pointer",
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : f.type === "textarea" ? (
                 <textarea
                   placeholder={f.ph}
                   value={state.form[f.key] ?? ""}
-                  rows={6}
+                  rows={f.rows ?? (f.key === "items" ? 5 : 6)}
                   onChange={(e) => handleFieldChange(f.key, e.target.value)}
                   style={{
                     width:"100%", padding:"10px 13px",
@@ -316,7 +399,7 @@ function StepEditor({ state, setState, onBack, onNext }) {
 
           {/* Tab bar */}
           <div style={{display:"flex",gap:4,marginBottom:22,background:"#f5f4f1",padding:4,borderRadius:10}}>
-            {["border","shapes","colours","font"].map((t) => (
+            {["border","shapes","colours","bg","font"].map((t) => (
               <button
                 key={t}
                 onClick={() => setDesignTab(t)}
@@ -426,6 +509,71 @@ function StepEditor({ state, setState, onBack, onNext }) {
             </div>
           )}
 
+          {/* Backgrounds tab */}
+          {designTab === "bg" && (
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={{fontSize:12,color:"#7a7a8a",lineHeight:1.5}}>
+                Add background images for the full page, header, body, or footer. (Optional)
+              </div>
+
+              {[
+                ["Page",   "pageBgImage",   "pageBgImageOpacity"],
+                ["Header", "headerBgImage", "headerBgImageOpacity"],
+                ["Body",   "bodyBgImage",   "bodyBgImageOpacity"],
+                ["Footer", "footerBgImage", "footerBgImageOpacity"],
+              ].map(([label, key, opKey]) => (
+                <div key={key} style={{border:"1px solid rgba(0,0,0,.08)",borderRadius:14,padding:"14px 14px",background:"#fafafa"}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                    <div style={{fontFamily:"'Syne',sans-serif",fontSize:14,fontWeight:800,color:"#0d0d0f"}}>{label} Background</div>
+                    {state.design[key] && (
+                      <button
+                        onClick={() => setDesign(key, "")}
+                        style={{padding:"6px 10px",borderRadius:10,border:"1px solid rgba(0,0,0,.12)",background:"white",fontSize:12,fontWeight:700,cursor:"pointer"}}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{display:"grid",gap:10}}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleDesignImage(key, e.target.files?.[0])}
+                      style={{fontSize:12}}
+                    />
+                    <input
+                      placeholder="or paste image URL"
+                      value={state.design[key] ?? ""}
+                      onChange={(e) => setDesign(key, e.target.value)}
+                      style={{
+                        width:"100%", padding:"10px 12px",
+                        border:"1.5px solid rgba(0,0,0,.12)",
+                        borderRadius:10, fontSize:13, background:"white", outline:"none",
+                        fontFamily:"'DM Sans',sans-serif",
+                      }}
+                    />
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:12,fontWeight:700,color:"#3a3a45",width:70}}>Opacity</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={0.6}
+                        step={0.02}
+                        value={state.design[opKey] ?? 0.2}
+                        onChange={(e) => setDesign(opKey, +e.target.value)}
+                        style={{flex:1, accentColor: accentHex}}
+                      />
+                      <span style={{fontSize:12,color:"#7a7a8a",width:42,textAlign:"right"}}>
+                        {Math.round((state.design[opKey] ?? 0.2) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Font tab */}
           {designTab === "font" && (
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -485,7 +633,7 @@ function StepEditor({ state, setState, onBack, onNext }) {
       </div>
 
       {/* ── RIGHT: Live preview ── */}
-      <div style={{ overflowY:"auto", padding:"28px 32px", background:"#eeede8" }}>
+        <div style={{ overflowY:"auto", padding:"28px 32px", background:"#eeede8" }}>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,fontSize:13,fontWeight:500,color:"#3a3a45"}}>
           <span>👁</span> Live Preview — updates as you type
         </div>
@@ -495,7 +643,7 @@ function StepEditor({ state, setState, onBack, onNext }) {
             <div key={i} style={{width:10,height:10,borderRadius:"50%",background:c}}/>
           ))}
         </div>
-        <LetterPreview design={state.design} form={previewForm} docType={state.docType} />
+        <LetterPreview design={state.design} form={state.form} docType={state.docType} />
       </div>
     </div>
   );

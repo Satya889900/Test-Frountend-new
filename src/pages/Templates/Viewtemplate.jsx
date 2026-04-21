@@ -75,6 +75,20 @@ export default function ViewTemplate({ template, onBack, onEdit }) {
   const { design: d, form: f, docType, layout, name, createdAt } = template;
   const accentHex = COLORS[d.accentColor]?.hex || "#3b82f6";
 
+  const metaLeft = (() => {
+    if (docType === "invoice") return { icon: "🏢", label: "Business", value: f.businessName || f.company || "—" };
+    if (docType === "resume")  return { icon: "👤", label: "Name", value: f.fullName || f.company || "—" };
+    return { icon: "🏢", label: "Company", value: f.company || "—" };
+  })();
+
+  const metaRight = (() => {
+    if (docType === "invoice") return { icon: "👤", label: "Client", value: f.clientName || f.billTo || f.receiver || "—" };
+    if (docType === "resume")  return { icon: "✉️", label: "Email", value: f.email || f.receiver || "—" };
+    return { icon: "👤", label: "Receiver", value: f.receiver || "—" };
+  })();
+
+  const metaDate = docType === "invoice" ? (f.invoiceDate || f.date || "—") : (f.date || "—");
+
   const handleDownload = () => {
     setDownloading(true);
     setTimeout(() => {
@@ -157,9 +171,9 @@ export default function ViewTemplate({ template, onBack, onEdit }) {
         <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:32}}>
           <MetaPill icon="📄" label="Type"    value={DOC_TYPES[docType]?.label || docType}/>
           <MetaPill icon="⊞"  label="Layout"  value={LAYOUTS[layout]?.label   || layout}/>
-          <MetaPill icon="🏢" label="Company" value={f.company || "—"}/>
-          <MetaPill icon="👤" label="Receiver" value={f.receiver || "—"}/>
-          <MetaPill icon="📅" label="Date"    value={f.date || "—"}/>
+          <MetaPill icon={metaLeft.icon} label={metaLeft.label} value={metaLeft.value}/>
+          <MetaPill icon={metaRight.icon} label={metaRight.label} value={metaRight.value}/>
+          <MetaPill icon="📅" label="Date"    value={metaDate}/>
           <MetaPill icon="🎨" label="Colour"  value={COLORS[d.accentColor]?.name} accent={accentHex}/>
           <MetaPill icon="✅" label="Status"  value="Ready for Download" accent="#16a34a"/>
         </div>
